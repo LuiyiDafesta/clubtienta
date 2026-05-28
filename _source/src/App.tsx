@@ -6,6 +6,7 @@ import Login from './pages/Login'
 import Registro from './pages/Registro'
 import Caja from './pages/Caja'
 import Admin from './pages/Admin'
+import Crm from './pages/Crm'
 import Dashboard from './pages/Dashboard'
 import Movimientos from './pages/Movimientos'
 import { RefreshCw } from 'lucide-react'
@@ -92,6 +93,16 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['admin']}>
                   <Admin />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Rutas Protegidas - CRM Clientes (Admins y Cajeros) */}
+            <Route
+              path="/crm"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'cajero']}>
+                  <Crm />
                 </ProtectedRoute>
               }
             />

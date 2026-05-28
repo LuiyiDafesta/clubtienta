@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { LogOut, LayoutDashboard, Award, ClipboardList } from 'lucide-react'
+import { LogOut, LayoutDashboard, Award, ClipboardList, Layers } from 'lucide-react'
 
 export default function Navbar() {
   const navigate = useNavigate()
@@ -77,6 +77,14 @@ export default function Navbar() {
                   }`}
                 >
                   <Award size={16} /> Línea de Caja
+                </button>
+                <button
+                  onClick={() => navigate('/crm')}
+                  className={`font-montserrat text-sm tracking-widest font-extrabold uppercase hover:text-tienta-goldLight transition-colors duration-200 py-2 flex items-center gap-2 ${
+                    location.pathname === '/crm' ? 'text-tienta-goldLight border-b-2 border-tienta-goldLight' : 'text-white/80'
+                  }`}
+                >
+                  <Layers size={16} /> Clientes (CRM)
                 </button>
                 {userRole === 'admin' && (
                   <button

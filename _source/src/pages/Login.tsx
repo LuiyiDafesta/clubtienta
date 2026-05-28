@@ -51,17 +51,17 @@ export default function Login() {
         
         <div className="relative z-10 text-center max-w-lg flex flex-col items-center">
           <div className="mb-4">
-            <span className="font-montserrat text-6xl font-light tracking-[0.3em] text-white">
+            <span className="font-montserrat text-7xl font-black tracking-[0.25em] text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.15)]">
               TIENTA
             </span>
-            <div className="font-montserrat text-xs font-semibold tracking-[0.4em] text-tienta-gold uppercase mt-2">
+            <div className="font-montserrat text-sm font-extrabold tracking-[0.35em] text-[#fad08c] uppercase mt-3">
               CLUB DE FIDELIDAD
             </div>
           </div>
           
-          <div className="h-[1px] w-24 bg-tienta-gold/30 my-8"></div>
+          <div className="h-[2px] w-28 bg-[#fad08c]/40 my-8"></div>
           
-          <p className="font-montserrat text-sm font-light tracking-widest text-white/80 leading-relaxed uppercase">
+          <p className="font-montserrat text-sm font-semibold tracking-wider text-white leading-relaxed uppercase max-w-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
             Disfrutá la cremosidad artesanal de nuestros sabores y sumá puntos con cada visita.
           </p>
         </div>
@@ -73,10 +73,10 @@ export default function Login() {
           
           {/* Cabecera Móvil del Logo */}
           <div className="text-center md:hidden mb-8">
-            <span className="font-montserrat text-4xl font-light tracking-[0.25em] text-tienta-teal">
+            <span className="font-montserrat text-4xl font-extrabold tracking-[0.2em] text-tienta-teal">
               TIENTA
             </span>
-            <div className="font-montserrat text-[9px] font-semibold tracking-[0.3em] text-tienta-gold uppercase mt-1">
+            <div className="font-montserrat text-[10px] font-bold tracking-[0.3em] text-tienta-goldDark uppercase mt-1.5">
               CLUB DE FIDELIDAD
             </div>
           </div>

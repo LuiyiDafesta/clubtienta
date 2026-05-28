@@ -106,22 +106,22 @@ export default function Registro() {
         <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-tienta-gold/10 blur-3xl"></div>
         
         <div className="relative z-10 text-center max-w-sm flex flex-col items-center">
-          <Link to="/" className="text-white/60 hover:text-white mb-8 flex items-center gap-2 text-xs font-montserrat uppercase tracking-widest transition-colors duration-200">
+          <Link to="/" className="text-white/80 hover:text-[#fad08c] mb-8 flex items-center gap-2 text-xs font-montserrat uppercase tracking-widest transition-colors duration-200 font-extrabold">
             <ArrowLeft size={12} /> Volver al Inicio
           </Link>
           
           <div className="mb-4">
-            <span className="font-montserrat text-5xl font-light tracking-[0.25em] text-white">
+            <span className="font-montserrat text-6xl font-black tracking-[0.25em] text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.15)]">
               TIENTA
             </span>
-            <div className="font-montserrat text-[10px] font-semibold tracking-[0.35em] text-tienta-gold uppercase mt-2">
+            <div className="font-montserrat text-xs font-extrabold tracking-[0.35em] text-[#fad08c] uppercase mt-3">
               ASOCIATE AL CLUB
             </div>
           </div>
           
-          <div className="h-[1px] w-16 bg-tienta-gold/30 my-6"></div>
+          <div className="h-[2px] w-24 bg-[#fad08c]/40 my-8"></div>
           
-          <p className="font-montserrat text-xs font-light tracking-widest text-white/70 leading-relaxed uppercase">
+          <p className="font-montserrat text-xs font-semibold tracking-wider text-white leading-relaxed uppercase drop-shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
             Comenzá a sumar beneficios exclusivos y canjeá tus puntos por tus postres y helados artesanales favoritos.
           </p>
         </div>

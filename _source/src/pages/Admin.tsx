@@ -57,6 +57,7 @@ export default function Admin() {
   const [nuevoPremio, setNuevoPremio] = useState<Premio>({
     nombre: '', descripcion: '', puntos_requeridos: 100, imagen_url: '', stock: -1, activo: true
   })
+  const [editingPremioId, setEditingPremioId] = useState<string | null>(null)
 
   // --- PROMOS ESTADOS ---
   const [promociones, setPromociones] = useState<Promocion[]>([])
@@ -64,6 +65,7 @@ export default function Admin() {
   const [nuevaPromo, setNuevaPromo] = useState<Promocion>({
     titulo: '', descripcion: '', descuento_porcentaje: null, dias_vigencia: [], niveles_aplicables: [], imagen_url: '', activo: true
   })
+  const [editingPromoId, setEditingPromoId] = useState<string | null>(null)
 
   // --- AUDITORÍA ESTADOS ---
   const [auditorias, setAuditorias] = useState<TransaccionAuditoria[]>([])
@@ -136,14 +138,40 @@ export default function Admin() {
   const handleCrearPremio = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      const { error } = await supabase.from('premios').insert(nuevoPremio)
-      if (error) throw error
+      if (editingPremioId) {
+        const { error } = await supabase
+          .from('premios')
+          .update(nuevoPremio)
+          .eq('id', editingPremioId)
+        if (error) throw error
+        setEditingPremioId(null)
+      } else {
+        const { error } = await supabase.from('premios').insert(nuevoPremio)
+        if (error) throw error
+      }
       
       setNuevoPremio({ nombre: '', descripcion: '', puntos_requeridos: 100, imagen_url: '', stock: -1, activo: true })
       fetchPremios()
     } catch (err: any) {
       alert(err.message)
     }
+  }
+
+  const handleIniciarEditarPremio = (premio: Premio) => {
+    setEditingPremioId(premio.id || null)
+    setNuevoPremio({
+      nombre: premio.nombre,
+      descripcion: premio.descripcion,
+      puntos_requeridos: premio.puntos_requeridos,
+      imagen_url: premio.imagen_url || '',
+      stock: premio.stock,
+      activo: premio.activo
+    })
+  }
+
+  const handleCancelarEditarPremio = () => {
+    setEditingPremioId(null)
+    setNuevoPremio({ nombre: '', descripcion: '', puntos_requeridos: 100, imagen_url: '', stock: -1, activo: true })
   }
 
   const handleEliminarPremio = async (id: string) => {
@@ -168,14 +196,41 @@ export default function Admin() {
   const handleCrearPromo = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      const { error } = await supabase.from('promociones').insert(nuevaPromo)
-      if (error) throw error
+      if (editingPromoId) {
+        const { error } = await supabase
+          .from('promociones')
+          .update(nuevaPromo)
+          .eq('id', editingPromoId)
+        if (error) throw error
+        setEditingPromoId(null)
+      } else {
+        const { error } = await supabase.from('promociones').insert(nuevaPromo)
+        if (error) throw error
+      }
 
       setNuevaPromo({ titulo: '', descripcion: '', descuento_porcentaje: null, dias_vigencia: [], niveles_aplicables: [], imagen_url: '', activo: true })
       fetchPromociones()
     } catch (err: any) {
       alert(err.message)
     }
+  }
+
+  const handleIniciarEditarPromo = (promo: Promocion) => {
+    setEditingPromoId(promo.id || null)
+    setNuevaPromo({
+      titulo: promo.titulo,
+      descripcion: promo.descripcion,
+      descuento_porcentaje: promo.descuento_porcentaje,
+      dias_vigencia: promo.dias_vigencia || [],
+      niveles_aplicables: promo.niveles_aplicables || [],
+      imagen_url: promo.imagen_url || '',
+      activo: promo.activo
+    })
+  }
+
+  const handleCancelarEditarPromo = () => {
+    setEditingPromoId(null)
+    setNuevaPromo({ titulo: '', descripcion: '', descuento_porcentaje: null, dias_vigencia: [], niveles_aplicables: [], imagen_url: '', activo: true })
   }
 
   const handleEliminarPromo = async (id: string) => {
@@ -250,47 +305,47 @@ export default function Admin() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-left">
       
       <div className="mb-8">
-        <h1 className="text-3xl font-montserrat font-bold text-tienta-teal uppercase tracking-wider">
+        <h1 className="text-3xl font-montserrat font-extrabold text-tienta-teal uppercase tracking-wider">
           Panel de Administración
         </h1>
-        <p className="text-xs text-black/50 font-lato mt-1">
+        <p className="text-sm text-black/75 font-lato mt-1.5 font-medium">
           Configurá los parámetros, premios, promociones y auditá las transacciones del Club.
         </p>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-black/10 mb-8 space-x-6">
+      <div className="flex border-b border-black/10 mb-8 space-x-6 overflow-x-auto">
         <button
           onClick={() => setActiveTab('config')}
-          className={`pb-4 text-xs font-montserrat uppercase tracking-wider font-semibold cursor-pointer transition-all ${
-            activeTab === 'config' ? 'border-b-2 border-tienta-gold text-tienta-teal' : 'text-black/40 hover:text-black/60'
+          className={`pb-4 text-sm font-montserrat uppercase tracking-wider font-bold cursor-pointer transition-all shrink-0 ${
+            activeTab === 'config' ? 'border-b-2 border-tienta-gold text-tienta-teal' : 'text-black/60 hover:text-black/90'
           }`}
         >
-          <span className="flex items-center gap-2"><Settings size={14} /> Configuración</span>
+          <span className="flex items-center gap-2"><Settings size={16} /> Configuración</span>
         </button>
         <button
           onClick={() => setActiveTab('premios')}
-          className={`pb-4 text-xs font-montserrat uppercase tracking-wider font-semibold cursor-pointer transition-all ${
-            activeTab === 'premios' ? 'border-b-2 border-tienta-gold text-tienta-teal' : 'text-black/40 hover:text-black/60'
+          className={`pb-4 text-sm font-montserrat uppercase tracking-wider font-bold cursor-pointer transition-all shrink-0 ${
+            activeTab === 'premios' ? 'border-b-2 border-tienta-gold text-tienta-teal' : 'text-black/60 hover:text-black/90'
           }`}
         >
-          <span className="flex items-center gap-2"><Gift size={14} /> Catálogo de Premios</span>
+          <span className="flex items-center gap-2"><Gift size={16} /> Catálogo de Premios</span>
         </button>
         <button
           onClick={() => setActiveTab('promos')}
-          className={`pb-4 text-xs font-montserrat uppercase tracking-wider font-semibold cursor-pointer transition-all ${
-            activeTab === 'promos' ? 'border-b-2 border-tienta-gold text-tienta-teal' : 'text-black/40 hover:text-black/60'
+          className={`pb-4 text-sm font-montserrat uppercase tracking-wider font-bold cursor-pointer transition-all shrink-0 ${
+            activeTab === 'promos' ? 'border-b-2 border-tienta-gold text-tienta-teal' : 'text-black/60 hover:text-black/90'
           }`}
         >
-          <span className="flex items-center gap-2"><Percent size={14} /> Promociones</span>
+          <span className="flex items-center gap-2"><Percent size={16} /> Promociones</span>
         </button>
         <button
           onClick={() => setActiveTab('auditoria')}
-          className={`pb-4 text-xs font-montserrat uppercase tracking-wider font-semibold cursor-pointer transition-all ${
-            activeTab === 'auditoria' ? 'border-b-2 border-tienta-gold text-tienta-teal' : 'text-black/40 hover:text-black/60'
+          className={`pb-4 text-sm font-montserrat uppercase tracking-wider font-bold cursor-pointer transition-all shrink-0 ${
+            activeTab === 'auditoria' ? 'border-b-2 border-tienta-gold text-tienta-teal' : 'text-black/60 hover:text-black/90'
           }`}
         >
-          <span className="flex items-center gap-2"><ShieldCheck size={14} /> Auditoría General</span>
+          <span className="flex items-center gap-2"><ShieldCheck size={16} /> Auditoría General</span>
         </button>
       </div>
 
@@ -310,7 +365,7 @@ export default function Admin() {
 
           <form onSubmit={handleGuardarConfig} className="space-y-6">
             <div>
-              <label className="block text-xs font-montserrat uppercase tracking-widest font-semibold text-black/60 mb-2">
+              <label className="block text-sm font-montserrat uppercase tracking-wider font-bold text-tienta-teal mb-2">
                 Equivalencia en Pesos de 1 Punto ($)
               </label>
               <input
@@ -318,15 +373,15 @@ export default function Admin() {
                 required
                 value={valorPunto}
                 onChange={(e) => setValorPunto(e.target.value)}
-                className="input-tienta max-w-sm text-black py-3 font-lato"
+                className="input-tienta max-w-sm text-black py-3 text-base font-semibold"
               />
-              <span className="text-[10px] text-black/40 mt-1.5 block leading-relaxed">
+              <span className="text-xs text-black/65 mt-1.5 block leading-relaxed font-medium">
                 Ej: Si configurás 200 pesos, el cliente recibirá 1 punto por cada $200 consumidos en caja.
               </span>
             </div>
 
             <div>
-              <label className="block text-xs font-montserrat uppercase tracking-widest font-semibold text-black/60 mb-2">
+              <label className="block text-sm font-montserrat uppercase tracking-wider font-bold text-tienta-teal mb-2">
                 Expiración de Puntos (Meses)
               </label>
               <input
@@ -334,9 +389,9 @@ export default function Admin() {
                 required
                 value={expiracionMeses}
                 onChange={(e) => setExpiracionMeses(e.target.value)}
-                className="input-tienta max-w-sm text-black py-3"
+                className="input-tienta max-w-sm text-black py-3 text-base font-semibold"
               />
-              <span className="text-[10px] text-black/40 mt-1.5 block leading-relaxed">
+              <span className="text-xs text-black/65 mt-1.5 block leading-relaxed font-medium">
                 Ingresá 0 para que los puntos nunca expiren (vencimiento desactivado).
               </span>
             </div>
@@ -359,12 +414,12 @@ export default function Admin() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Creador de Premios */}
           <div className="lg:col-span-1 bg-white border border-black/5 rounded-3xl p-6 shadow-sm h-fit">
-            <h3 className="text-sm font-montserrat font-bold tracking-wider text-tienta-teal uppercase mb-4 flex items-center gap-2">
-              <Plus size={16} /> Crear Nuevo Premio
+            <h3 className="text-base font-montserrat font-extrabold tracking-wider text-tienta-teal uppercase mb-4 flex items-center gap-2">
+              <Plus size={18} /> {editingPremioId ? 'Editar Premio' : 'Crear Nuevo Premio'}
             </h3>
             <form onSubmit={handleCrearPremio} className="space-y-4">
               <div>
-                <label className="block text-[9px] font-montserrat uppercase tracking-widest text-black/50 mb-1.5">
+                <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
                   Nombre del Premio
                 </label>
                 <input
@@ -373,25 +428,25 @@ export default function Admin() {
                   placeholder="Ej. Pote 1/2 Kg"
                   value={nuevoPremio.nombre}
                   onChange={(e) => setNuevoPremio({ ...nuevoPremio, nombre: e.target.value })}
-                  className="input-tienta py-2.5 text-black"
+                  className="input-tienta py-2.5 text-black font-semibold text-sm"
                 />
               </div>
 
               <div>
-                <label className="block text-[9px] font-montserrat uppercase tracking-widest text-black/50 mb-1.5">
+                <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
                   Descripción / Sabores elegibles
                 </label>
                 <textarea
                   placeholder="Detallá qué sabores o condiciones incluye..."
                   value={nuevoPremio.descripcion}
                   onChange={(e) => setNuevoPremio({ ...nuevoPremio, descripcion: e.target.value })}
-                  className="w-full rounded-2xl border border-black/10 bg-white px-4 py-2.5 text-sm focus:border-tienta-gold focus:outline-none focus:ring-1 focus:ring-tienta-gold transition-all duration-300 placeholder:text-black/30 text-black h-20 resize-none"
+                  className="w-full rounded-2xl border border-black/10 bg-white px-4 py-2.5 text-sm focus:border-tienta-gold focus:outline-none focus:ring-1 focus:ring-tienta-gold transition-all duration-300 placeholder:text-black/50 text-black h-24 resize-none font-medium"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[9px] font-montserrat uppercase tracking-widest text-black/50 mb-1.5">
+                  <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
                     Puntos Requeridos
                   </label>
                   <input
@@ -399,11 +454,11 @@ export default function Admin() {
                     required
                     value={nuevoPremio.puntos_requeridos}
                     onChange={(e) => setNuevoPremio({ ...nuevoPremio, puntos_requeridos: Number(e.target.value) })}
-                    className="input-tienta py-2.5 text-black"
+                    className="input-tienta py-2.5 text-black font-semibold text-sm"
                   />
                 </div>
                 <div>
-                  <label className="block text-[9px] font-montserrat uppercase tracking-widest text-black/50 mb-1.5">
+                  <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
                     Stock (-1 ilimitado)
                   </label>
                   <input
@@ -411,23 +466,34 @@ export default function Admin() {
                     required
                     value={nuevoPremio.stock}
                     onChange={(e) => setNuevoPremio({ ...nuevoPremio, stock: Number(e.target.value) })}
-                    className="input-tienta py-2.5 text-black"
+                    className="input-tienta py-2.5 text-black font-semibold text-sm"
                   />
                 </div>
               </div>
 
-              <button
-                type="submit"
-                className="w-full btn-tienta-teal py-3 text-xs tracking-wider cursor-pointer"
-              >
-                Agregar al Catálogo
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  className="flex-1 btn-tienta-teal py-3 text-sm font-bold tracking-wider cursor-pointer"
+                >
+                  {editingPremioId ? 'Guardar Cambios' : 'Agregar al Catálogo'}
+                </button>
+                {editingPremioId && (
+                  <button
+                    type="button"
+                    onClick={handleCancelarEditarPremio}
+                    className="btn-tienta-outline py-3 px-4 text-xs font-bold tracking-wider cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                )}
+              </div>
             </form>
           </div>
 
           {/* Listado de Premios */}
           <div className="lg:col-span-2 bg-white border border-black/5 rounded-3xl p-6 sm:p-8 shadow-sm">
-            <h3 className="text-sm font-montserrat font-bold tracking-wider text-tienta-teal uppercase mb-6">
+            <h3 className="text-base font-montserrat font-extrabold tracking-wider text-tienta-teal uppercase mb-6">
               Catálogo Cargado
             </h3>
 
@@ -440,39 +506,46 @@ export default function Admin() {
                 {premios.map((pr) => (
                   <div key={pr.id} className="py-4 flex justify-between items-center gap-4 hover:bg-tienta-crema/10 px-2 rounded-xl transition-all">
                     <div>
-                      <h4 className="font-montserrat font-bold text-xs uppercase tracking-wide text-tienta-teal">
+                      <h4 className="font-montserrat font-bold text-sm uppercase tracking-wide text-tienta-teal">
                         {pr.nombre}
                       </h4>
-                      <p className="text-[11px] text-black/50 font-lato leading-relaxed mt-0.5 max-w-lg">
+                      <p className="text-xs text-black/70 font-lato leading-relaxed mt-1 max-w-lg font-medium">
                         {pr.descripcion || 'Sin descripción'}
                       </p>
-                      <div className="flex gap-4 mt-2">
-                        <span className="text-[10px] text-tienta-goldDark font-semibold">
+                      <div className="flex gap-4 mt-2.5">
+                        <span className="text-xs text-tienta-goldDark font-extrabold">
                           💰 {pr.puntos_requeridos} Puntos
                         </span>
-                        <span className="text-[10px] text-black/30 font-semibold">
+                        <span className="text-xs text-black/55 font-bold">
                           📦 Stock: {pr.stock === -1 ? 'Ilimitado' : pr.stock}
                         </span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 shrink-0">
                       <button
                         onClick={() => handleActivarPremio(pr.id!, !pr.activo)}
-                        className={`px-3 py-1 rounded-full text-[9px] font-montserrat uppercase tracking-wider font-semibold cursor-pointer border ${
+                        className={`px-3 py-1.5 rounded-full text-[10px] font-montserrat uppercase tracking-wider font-bold cursor-pointer border transition-all ${
                           pr.activo 
-                            ? 'bg-green-50 border-green-200 text-green-600' 
-                            : 'bg-black/5 border-black/10 text-black/40'
+                            ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100' 
+                            : 'bg-black/5 border-black/10 text-black/60 hover:bg-black/10'
                         }`}
                       >
                         {pr.activo ? 'Activo' : 'Pausado'}
                       </button>
                       <button
+                        onClick={() => handleIniciarEditarPremio(pr)}
+                        className="text-tienta-teal hover:text-tienta-tealDark hover:bg-tienta-teal/5 border border-tienta-teal/20 px-3 py-1.5 rounded-full text-[10px] font-montserrat uppercase font-bold tracking-wider transition-all cursor-pointer"
+                        title="Editar"
+                      >
+                        Editar
+                      </button>
+                      <button
                         onClick={() => handleEliminarPremio(pr.id!)}
-                        className="text-black/30 hover:text-red-500 p-2 rounded-full hover:bg-red-50 transition-colors"
+                        className="text-black/50 hover:text-red-600 p-2 rounded-full hover:bg-red-50 transition-colors cursor-pointer"
                         title="Eliminar"
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={16} />
                       </button>
                     </div>
                   </div>
@@ -488,12 +561,12 @@ export default function Admin() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Creador de Promos */}
           <div className="lg:col-span-1 bg-white border border-black/5 rounded-3xl p-6 shadow-sm h-fit">
-            <h3 className="text-sm font-montserrat font-bold tracking-wider text-tienta-teal uppercase mb-4 flex items-center gap-2">
-              <Plus size={16} /> Nueva Promoción
+            <h3 className="text-base font-montserrat font-extrabold tracking-wider text-tienta-teal uppercase mb-4 flex items-center gap-2">
+              <Plus size={18} /> {editingPromoId ? 'Editar Promoción' : 'Nueva Promoción'}
             </h3>
-            <form onSubmit={handleCrearPromo} className="space-y-4 text-xs">
+            <form onSubmit={handleCrearPromo} className="space-y-4 text-sm">
               <div>
-                <label className="block text-[9px] font-montserrat uppercase tracking-widest text-black/50 mb-1.5">
+                <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
                   Título de la Promoción
                 </label>
                 <input
@@ -502,12 +575,12 @@ export default function Admin() {
                   placeholder="Ej. Miércoles de 2x1"
                   value={nuevaPromo.titulo}
                   onChange={(e) => setNuevaPromo({ ...nuevaPromo, titulo: e.target.value })}
-                  className="input-tienta py-2.5 text-black"
+                  className="input-tienta py-2.5 text-black font-semibold text-sm"
                 />
               </div>
 
               <div>
-                <label className="block text-[9px] font-montserrat uppercase tracking-widest text-black/50 mb-1.5">
+                <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
                   Descripción
                 </label>
                 <textarea
@@ -515,12 +588,12 @@ export default function Admin() {
                   placeholder="Describí los beneficios y cómo se aplica..."
                   value={nuevaPromo.descripcion}
                   onChange={(e) => setNuevaPromo({ ...nuevaPromo, descripcion: e.target.value })}
-                  className="w-full rounded-2xl border border-black/10 bg-white px-4 py-2.5 text-sm focus:border-tienta-gold focus:outline-none focus:ring-1 focus:ring-tienta-gold transition-all duration-300 placeholder:text-black/30 text-black h-20 resize-none"
+                  className="w-full rounded-2xl border border-black/10 bg-white px-4 py-2.5 text-sm focus:border-tienta-gold focus:outline-none focus:ring-1 focus:ring-tienta-gold transition-all duration-300 placeholder:text-black/50 text-black h-24 resize-none font-medium"
                 />
               </div>
 
               <div>
-                <label className="block text-[9px] font-montserrat uppercase tracking-widest text-black/50 mb-1.5">
+                <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
                   % Descuento Directo (Opcional)
                 </label>
                 <input
@@ -528,16 +601,16 @@ export default function Admin() {
                   placeholder="Ej. 20 (opcional)"
                   value={nuevaPromo.descuento_porcentaje || ''}
                   onChange={(e) => setNuevaPromo({ ...nuevaPromo, descuento_porcentaje: e.target.value ? Number(e.target.value) : null })}
-                  className="input-tienta py-2.5 text-black"
+                  className="input-tienta py-2.5 text-black font-semibold text-sm"
                 />
               </div>
 
               {/* Días de Vigencia */}
               <div>
-                <label className="block text-[9px] font-montserrat uppercase tracking-widest text-black/50 mb-2 flex items-center gap-1">
-                  <Calendar size={10} /> Días de Vigencia
+                <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-2 flex items-center gap-1.5">
+                  <Calendar size={12} /> Días de Vigencia
                 </label>
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap gap-2">
                   {diasSemana.map((d) => {
                     const selected = nuevaPromo.dias_vigencia.includes(d)
                     return (
@@ -545,10 +618,10 @@ export default function Admin() {
                         type="button"
                         key={d}
                         onClick={() => toggleDiaVigencia(d)}
-                        className={`px-2.5 py-1 rounded-full text-[9px] font-semibold border transition-all cursor-pointer ${
+                        className={`px-3.5 py-1.5 rounded-full text-xs font-bold border transition-all cursor-pointer ${
                           selected
                             ? 'bg-tienta-gold border-tienta-gold text-white'
-                            : 'bg-white border-black/10 text-black/50'
+                            : 'bg-white border-black/10 text-black/60 hover:text-black/90'
                         }`}
                       >
                         {d.substring(0, 2)}
@@ -560,10 +633,10 @@ export default function Admin() {
 
               {/* Niveles Aplicables */}
               <div>
-                <label className="block text-[9px] font-montserrat uppercase tracking-widest text-black/50 mb-2 flex items-center gap-1">
-                  <Layers size={10} /> Niveles aplicables (Vacío = Todos)
+                <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-2 flex items-center gap-1.5">
+                  <Layers size={12} /> Niveles aplicables (Vacío = Todos)
                 </label>
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap gap-2">
                   {nivelesClub.map((n) => {
                     const selected = (nuevaPromo.niveles_aplicables || []).includes(n)
                     return (
@@ -571,10 +644,10 @@ export default function Admin() {
                         type="button"
                         key={n}
                         onClick={() => toggleNivelAplicable(n)}
-                        className={`px-2.5 py-1 rounded-full text-[9px] font-semibold border transition-all cursor-pointer ${
+                        className={`px-3.5 py-1.5 rounded-full text-xs font-bold border transition-all cursor-pointer ${
                           selected
                             ? 'bg-tienta-teal border-tienta-teal text-white'
-                            : 'bg-white border-black/10 text-black/50'
+                            : 'bg-white border-black/10 text-black/60 hover:text-black/90'
                         }`}
                       >
                         {n}
@@ -584,18 +657,29 @@ export default function Admin() {
                 </div>
               </div>
 
-              <button
-                type="submit"
-                className="w-full btn-tienta-teal py-3 text-xs tracking-wider cursor-pointer"
-              >
-                Publicar Promoción
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  className="flex-1 btn-tienta-teal py-3 text-sm font-bold tracking-wider cursor-pointer"
+                >
+                  {editingPromoId ? 'Guardar Cambios' : 'Publicar Promoción'}
+                </button>
+                {editingPromoId && (
+                  <button
+                    type="button"
+                    onClick={handleCancelarEditarPromo}
+                    className="btn-tienta-outline py-3 px-4 text-xs font-bold tracking-wider cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                )}
+              </div>
             </form>
           </div>
 
           {/* Listado de Promos */}
           <div className="lg:col-span-2 bg-white border border-black/5 rounded-3xl p-6 sm:p-8 shadow-sm">
-            <h3 className="text-sm font-montserrat font-bold tracking-wider text-tienta-teal uppercase mb-6">
+            <h3 className="text-base font-montserrat font-extrabold tracking-wider text-tienta-teal uppercase mb-6">
               Promociones Publicadas
             </h3>
 
@@ -608,43 +692,50 @@ export default function Admin() {
                 {promociones.map((pr) => (
                   <div key={pr.id} className="py-4 flex justify-between items-center gap-4 hover:bg-tienta-crema/10 px-2 rounded-xl transition-all">
                     <div>
-                      <h4 className="font-montserrat font-bold text-xs uppercase tracking-wide text-tienta-teal">
+                      <h4 className="font-montserrat font-bold text-sm uppercase tracking-wide text-tienta-teal">
                         {pr.titulo}
                       </h4>
-                      <p className="text-[11px] text-black/50 font-lato leading-relaxed mt-0.5 max-w-lg">
+                      <p className="text-xs text-black/70 font-lato leading-relaxed mt-1 max-w-lg font-medium">
                         {pr.descripcion}
                       </p>
-                      <div className="flex flex-wrap gap-2 mt-2">
+                      <div className="flex flex-wrap gap-2 mt-2.5">
                         {pr.descuento_porcentaje && (
-                          <span className="bg-red-50 text-red-600 px-2 py-0.5 rounded text-[8px] font-semibold border border-red-100">
+                          <span className="bg-red-50 text-red-600 px-2.5 py-0.5 rounded text-[10px] font-bold border border-red-100">
                             🏷 {pr.descuento_porcentaje}% OFF
                           </span>
                         )}
-                        <span className="bg-tienta-crema text-tienta-goldDark px-2 py-0.5 rounded text-[8px] font-semibold border border-tienta-gold/20">
+                        <span className="bg-tienta-crema text-tienta-goldDark px-2.5 py-0.5 rounded text-[10px] font-bold border border-tienta-gold/20">
                           📅 {pr.dias_vigencia.join(', ')}
                         </span>
-                        <span className="bg-tienta-teal/5 text-tienta-teal px-2 py-0.5 rounded text-[8px] font-semibold border border-tienta-teal/10">
+                        <span className="bg-tienta-teal/5 text-tienta-teal px-2.5 py-0.5 rounded text-[10px] font-bold border border-tienta-teal/10">
                           👥 Niveles: {pr.niveles_aplicables && pr.niveles_aplicables.length > 0 ? pr.niveles_aplicables.join(', ') : 'Todos'}
                         </span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 shrink-0">
                       <button
                         onClick={() => handleActivarPromo(pr.id!, !pr.activo)}
-                        className={`px-3 py-1 rounded-full text-[9px] font-montserrat uppercase tracking-wider font-semibold cursor-pointer border ${
+                        className={`px-3 py-1.5 rounded-full text-[10px] font-montserrat uppercase tracking-wider font-bold cursor-pointer border transition-all ${
                           pr.activo 
-                            ? 'bg-green-50 border-green-200 text-green-600' 
-                            : 'bg-black/5 border-black/10 text-black/40'
+                            ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100' 
+                            : 'bg-black/5 border-black/10 text-black/60 hover:bg-black/10'
                         }`}
                       >
                         {pr.activo ? 'Activa' : 'Pausada'}
                       </button>
                       <button
-                        onClick={() => handleEliminarPromo(pr.id!)}
-                        className="text-black/30 hover:text-red-500 p-2 rounded-full hover:bg-red-50 transition-colors"
+                        onClick={() => handleIniciarEditarPromo(pr)}
+                        className="text-tienta-teal hover:text-tienta-tealDark hover:bg-tienta-teal/5 border border-tienta-teal/20 px-3 py-1.5 rounded-full text-[10px] font-montserrat uppercase font-bold tracking-wider transition-all cursor-pointer"
+                        title="Editar"
                       >
-                        <Trash2 size={14} />
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => handleEliminarPromo(pr.id!)}
+                        className="text-black/50 hover:text-red-600 p-2 rounded-full hover:bg-red-50 transition-colors cursor-pointer"
+                      >
+                        <Trash2 size={16} />
                       </button>
                     </div>
                   </div>
@@ -674,7 +765,7 @@ export default function Admin() {
           {/* Filtros */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
             <div>
-              <label className="block text-[9px] font-montserrat uppercase tracking-widest text-black/50 mb-1.5">
+              <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
                 Filtrar DNI del Socio
               </label>
               <input
@@ -682,17 +773,17 @@ export default function Admin() {
                 placeholder="DNI del socio..."
                 value={filtroDni}
                 onChange={(e) => setFiltroDni(e.target.value)}
-                className="input-tienta py-2 text-xs"
+                className="input-tienta py-2 text-sm font-semibold"
               />
             </div>
             <div>
-              <label className="block text-[9px] font-montserrat uppercase tracking-widest text-black/50 mb-1.5">
+              <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
                 Filtrar por Tipo
               </label>
               <select
                 value={filtroTipo}
                 onChange={(e) => setFiltroTipo(e.target.value)}
-                className="w-full rounded-full border border-black/10 bg-white px-4 py-2 text-xs focus:border-tienta-gold focus:outline-none focus:ring-1 focus:ring-tienta-gold transition-all duration-300 text-black h-[38px]"
+                className="w-full rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-semibold focus:border-tienta-gold focus:outline-none focus:ring-1 focus:ring-tienta-gold transition-all duration-300 text-black h-[42px]"
               >
                 <option value="">Todos los movimientos</option>
                 <option value="carga_compra">Compras en Local</option>
@@ -701,7 +792,7 @@ export default function Admin() {
               </select>
             </div>
             <div>
-              <label className="block text-[9px] font-montserrat uppercase tracking-widest text-black/50 mb-1.5">
+              <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
                 Buscar Ticket / Factura
               </label>
               <input
@@ -709,7 +800,7 @@ export default function Admin() {
                 placeholder="Nro de ticket..."
                 value={filtroTicket}
                 onChange={(e) => setFiltroTicket(e.target.value)}
-                className="input-tienta py-2 text-xs"
+                className="input-tienta py-2 text-sm font-semibold"
               />
             </div>
           </div>
@@ -717,7 +808,7 @@ export default function Admin() {
           <div className="flex justify-end mb-6">
             <button
               onClick={fetchAuditoria}
-              className="btn-tienta-teal px-6 py-2 text-[10px] tracking-widest"
+              className="btn-tienta-teal px-6 py-2.5 text-xs font-bold tracking-wider cursor-pointer"
             >
               Aplicar Filtros
             </button>
@@ -725,42 +816,42 @@ export default function Admin() {
 
           {/* Reporte Tabla */}
           {loadingAuditoria ? (
-            <div className="flex justify-center items-center py-16 gap-2 text-black/40 text-xs">
-              <RefreshCw size={14} className="animate-spin" /> Consolidando reporte de auditoría...
+            <div className="flex justify-center items-center py-16 gap-2 text-black/60 text-sm">
+              <RefreshCw size={16} className="animate-spin" /> Consolidando reporte de auditoría...
             </div>
           ) : auditorias.length === 0 ? (
-            <p className="text-sm text-black/40 py-16 text-center">No se encontraron movimientos que coincidan con los filtros.</p>
+            <p className="text-sm text-black/50 py-16 text-center">No se encontraron movimientos que coincidan con los filtros.</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-xs font-lato text-left border-collapse">
+              <table className="w-full text-sm font-lato text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-black/5 text-black/40 font-montserrat uppercase text-[9px] tracking-wider">
-                    <th className="pb-3 font-semibold">Fecha y Hora</th>
-                    <th className="pb-3 font-semibold">Socio (DNI)</th>
-                    <th className="pb-3 font-semibold">Tipo</th>
-                    <th className="pb-3 font-semibold">Ticket/Ref</th>
-                    <th className="pb-3 font-semibold">Detalle del Movimiento</th>
-                    <th className="pb-3 font-semibold text-right">Importe</th>
-                    <th className="pb-3 font-semibold text-right">Puntos</th>
+                  <tr className="border-b border-black/10 text-black/70 font-montserrat uppercase text-xs tracking-wider">
+                    <th className="pb-3 font-extrabold">Fecha y Hora</th>
+                    <th className="pb-3 font-extrabold">Socio (DNI)</th>
+                    <th className="pb-3 font-extrabold">Tipo</th>
+                    <th className="pb-3 font-extrabold">Ticket/Ref</th>
+                    <th className="pb-3 font-extrabold">Detalle del Movimiento</th>
+                    <th className="pb-3 font-extrabold text-right">Importe</th>
+                    <th className="pb-3 font-extrabold text-right">Puntos</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-black/5">
+                <tbody className="divide-y divide-black/5 font-semibold text-black/85">
                   {auditorias.map((tr) => (
                     <tr key={tr.id} className="hover:bg-tienta-crema/20">
-                      <td className="py-3.5 text-black/60">
+                      <td className="py-3.5 text-black/70">
                         {new Date(tr.created_at).toLocaleString('es-AR', {
                           day: '2-digit', month: '2-digit', year: 'numeric',
                           hour: '2-digit', minute: '2-digit'
                         })}
                       </td>
                       <td className="py-3.5">
-                        <span className="font-semibold block text-black">
+                        <span className="font-bold block text-black text-sm">
                           {tr.cliente?.nombre} {tr.cliente?.apellido}
                         </span>
-                        <span className="text-[10px] text-black/40 block mt-0.5">DNI: {tr.cliente?.dni}</span>
+                        <span className="text-xs text-black/60 block mt-0.5">DNI: {tr.cliente?.dni}</span>
                       </td>
                       <td className="py-3.5">
-                        <span className={`px-2 py-0.5 rounded text-[9px] font-semibold ${
+                        <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold ${
                           tr.tipo === 'carga_compra' 
                             ? 'bg-green-50 text-green-700 border border-green-100' 
                             : tr.tipo === 'carga_manual' 
@@ -770,13 +861,13 @@ export default function Admin() {
                           {tr.tipo === 'carga_compra' ? 'Compra' : tr.tipo === 'carga_manual' ? 'Manual' : 'Canje'}
                         </span>
                       </td>
-                      <td className="py-3.5 text-black/50 font-semibold">
+                      <td className="py-3.5 text-black/60 font-bold">
                         {tr.ticket_factura || '-'}
                       </td>
-                      <td className="py-3.5 text-black/60 max-w-xs truncate" title={tr.detalle}>
+                      <td className="py-3.5 text-black/70 max-w-xs truncate" title={tr.detalle}>
                         {tr.detalle}
                       </td>
-                      <td className="py-3.5 text-right font-semibold text-black/80">
+                      <td className="py-3.5 text-right font-extrabold text-black/80">
                         {tr.importe ? `$${Number(tr.importe).toLocaleString('es-AR')}` : '-'}
                       </td>
                       <td className={`py-3.5 text-right font-bold font-montserrat text-sm ${

@@ -139,13 +139,13 @@ export default function Dashboard() {
       {/* Cabecera */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <span className="text-[9px] font-montserrat uppercase tracking-[0.25em] text-tienta-goldDark font-bold">
+          <span className="text-xs font-montserrat uppercase tracking-[0.25em] text-tienta-goldDark font-extrabold">
             Portal de Socio Premium
           </span>
-          <h1 className="text-3xl font-montserrat font-bold text-tienta-teal uppercase tracking-wider mt-1">
+          <h1 className="text-3xl font-montserrat font-extrabold text-tienta-teal uppercase tracking-wider mt-1">
             Hola, {cliente.nombre}
           </h1>
-          <p className="text-xs text-black/50 font-lato mt-0.5">
+          <p className="text-sm text-black/75 font-lato mt-1 font-medium">
             ¡Nos alegra tenerte en el Club! Presentá tu tarjeta virtual en caja y sumá beneficios.
           </p>
         </div>
@@ -153,7 +153,7 @@ export default function Dashboard() {
         <button
           onClick={handleRefresh}
           disabled={refreshing}
-          className="flex items-center gap-1.5 text-xs text-tienta-goldDark font-semibold hover:text-tienta-teal tracking-wider uppercase font-montserrat cursor-pointer"
+          className="flex items-center gap-1.5 text-xs text-tienta-goldDark font-bold hover:text-tienta-teal tracking-wider uppercase font-montserrat cursor-pointer"
         >
           <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} /> {refreshing ? 'Actualizando...' : 'Actualizar Puntos'}
         </button>
@@ -170,29 +170,29 @@ export default function Dashboard() {
             
             <div className="flex justify-between items-start mb-12 relative z-10">
               <div className="flex flex-col">
-                <span className="font-montserrat text-xl font-light tracking-[0.25em] text-white">
+                <span className="font-montserrat text-xl font-extrabold tracking-[0.25em] text-white">
                   TIENTA
                 </span>
-                <span className="font-montserrat text-[8px] font-semibold tracking-[0.3em] text-tienta-gold uppercase -mt-0.5">
+                <span className="font-montserrat text-[8px] font-extrabold tracking-[0.3em] text-tienta-gold uppercase -mt-0.5">
                   CLUB DE PUNTOS
                 </span>
               </div>
               
-              <div className="bg-tienta-gold/20 text-tienta-gold border border-tienta-gold/30 px-3 py-1 rounded-full text-[9px] font-montserrat uppercase tracking-wider font-semibold">
+              <div className="bg-tienta-gold/25 text-white border border-tienta-gold/45 px-3 py-1 rounded-full text-[10px] font-montserrat uppercase tracking-wider font-bold">
                 Socio {cliente.nivel}
               </div>
             </div>
 
             {/* Código de Barras / QR Visual simulado */}
-            <div className="bg-white/95 rounded-2xl p-4 flex items-center justify-between gap-4 mb-6 relative z-10 shadow-sm border border-black/5">
+            <div className="bg-white/95 rounded-2xl p-4 flex items-center justify-between gap-4 mb-6 relative z-10 shadow-sm border border-black/10">
               <div className="flex flex-col text-left">
-                <span className="text-[8px] font-montserrat uppercase tracking-widest text-black/40 mb-1 font-bold">
+                <span className="text-[10px] font-montserrat uppercase tracking-wider text-black/60 mb-1 font-extrabold">
                   Socio Identificador
                 </span>
-                <span className="text-sm font-semibold text-tienta-teal font-mono tracking-wider">
+                <span className="text-base font-bold text-tienta-teal font-mono tracking-wider">
                   DNI {cliente.dni}
                 </span>
-                <span className="text-[9px] text-black/50 font-lato mt-0.5">
+                <span className="text-xs text-black/75 font-lato mt-0.5 font-bold">
                   {cliente.nombre} {cliente.apellido}
                 </span>
               </div>
@@ -203,17 +203,17 @@ export default function Dashboard() {
 
             <div className="flex justify-between items-end relative z-10">
               <div className="text-left">
-                <span className="text-[9px] font-montserrat uppercase tracking-widest text-white/50 block mb-0.5">
+                <span className="text-xs font-montserrat uppercase tracking-wider text-white/75 block mb-0.5 font-bold">
                   Total Acumulado
                 </span>
-                <span className="text-4xl font-montserrat font-light text-tienta-gold tracking-tight">
+                <span className="text-4xl font-montserrat font-extrabold text-tienta-gold tracking-tight">
                   {cliente.puntos_actuales}
                 </span>
-                <span className="text-[9px] text-tienta-gold font-bold tracking-widest uppercase font-montserrat ml-1">
+                <span className="text-xs text-tienta-gold font-extrabold tracking-widest uppercase font-montserrat ml-1">
                   pts
                 </span>
               </div>
-              <span className="text-[8px] font-montserrat uppercase tracking-widest text-white/40 mb-1 font-semibold">
+              <span className="text-[9px] font-montserrat uppercase tracking-wider text-white/60 mb-1 font-bold">
                 Caja Escaneable
               </span>
             </div>
@@ -221,15 +221,15 @@ export default function Dashboard() {
 
           {/* Progreso hacia el siguiente premio */}
           <div className="bg-white border border-black/5 rounded-3xl p-6 shadow-sm text-left">
-            <h3 className="font-montserrat font-bold text-xs tracking-wider text-tienta-teal uppercase mb-4 flex items-center gap-2">
+            <h3 className="font-montserrat font-extrabold text-sm tracking-wider text-tienta-teal uppercase mb-4 flex items-center gap-2">
               <Activity size={14} className="text-tienta-goldDark" /> Tu Progreso
             </h3>
             
             {proximoPremio ? (
               <div className="space-y-3">
                 <div className="flex justify-between text-xs font-semibold">
-                  <span className="text-black/60 font-lato">Próximo canje disponible:</span>
-                  <span className="text-tienta-goldDark font-semibold font-montserrat uppercase text-[10px] tracking-wider">{proximoPremio.nombre}</span>
+                  <span className="text-black/80 font-lato">Próximo canje disponible:</span>
+                  <span className="text-tienta-goldDark font-extrabold font-montserrat uppercase text-xs tracking-wider">{proximoPremio.nombre}</span>
                 </div>
                 <div className="w-full bg-tienta-crema rounded-full h-2 overflow-hidden border border-black/5">
                   <div 
@@ -237,44 +237,44 @@ export default function Dashboard() {
                     style={{ width: `${progresoPorcentaje}%` }}
                   ></div>
                 </div>
-                <div className="flex justify-between text-[10px] text-black/40 font-semibold tracking-wide">
+                <div className="flex justify-between text-xs text-black/65 font-bold tracking-wide">
                   <span>{cliente.puntos_actuales} Puntos</span>
                   <span>Meta: {proximoPremio.puntos_requeridos} pts ({proximoPremio.puntos_requeridos - cliente.puntos_actuales} faltantes)</span>
                 </div>
               </div>
             ) : (
               <div className="text-center py-2">
-                <p className="text-xs text-tienta-goldDark font-semibold font-montserrat uppercase tracking-wider">¡Sos el Rey del Club! 👑</p>
-                <p className="text-[11px] text-black/50 mt-1 leading-relaxed">Tenés puntos acumulados suficientes para canjear absolutamente cualquier premio del catálogo actual.</p>
+                <p className="text-sm text-tienta-goldDark font-extrabold font-montserrat uppercase tracking-wider">¡Sos el Rey del Club! 👑</p>
+                <p className="text-xs text-black/75 mt-1 leading-relaxed font-semibold">Tenés puntos acumulados suficientes para canjear absolutamente cualquier premio del catálogo actual.</p>
               </div>
             )}
           </div>
 
           {/* Historial Reciente de Mis Puntos */}
           <div className="bg-white border border-black/5 rounded-3xl p-6 shadow-sm text-left">
-            <h3 className="font-montserrat font-bold text-xs tracking-wider text-tienta-teal uppercase mb-4">
+            <h3 className="font-montserrat font-extrabold text-sm tracking-wider text-tienta-teal uppercase mb-4">
               Mis Últimos Movimientos
             </h3>
 
             {historial.length === 0 ? (
-              <p className="text-xs text-black/40 py-6 text-center">Todavía no registrás consumos.</p>
+              <p className="text-xs text-black/50 py-6 text-center font-medium">Todavía no registrás consumos.</p>
             ) : (
               <div className="space-y-3">
                 {historial.map((tr) => (
                   <div key={tr.id} className="flex justify-between items-center py-2 border-b border-black/5 last:border-b-0">
                     <div className="text-left max-w-[170px] truncate">
-                      <span className="text-xs font-semibold block text-black">
+                      <span className="text-xs font-bold block text-black">
                         {tr.tipo === 'carga_compra' ? 'Compra en Local' : tr.tipo === 'carga_manual' ? 'Premio/Ajuste' : 'Premio Canjeado'}
                       </span>
-                      <span className="text-[9px] text-black/40 block mt-0.5 truncate">{tr.detalle}</span>
+                      <span className="text-xs text-black/65 block mt-0.5 truncate font-medium">{tr.detalle}</span>
                     </div>
                     <div className="text-right">
-                      <span className={`text-xs font-bold font-montserrat ${
+                      <span className={`text-sm font-extrabold font-montserrat ${
                         tr.puntos > 0 ? 'text-green-600' : 'text-red-500'
                       }`}>
                         {tr.puntos > 0 ? `+${tr.puntos}` : tr.puntos}
                       </span>
-                      <span className="text-[8px] text-black/35 block mt-0.5">
+                      <span className="text-[10px] text-black/60 block mt-0.5 font-semibold">
                         {new Date(tr.created_at).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}
                       </span>
                     </div>
@@ -294,7 +294,7 @@ export default function Dashboard() {
             <div className="bg-white border border-black/5 rounded-3xl p-6 sm:p-8 shadow-sm text-left">
               <div className="flex items-center gap-2 mb-4">
                 <Percent className="text-tienta-teal" size={18} />
-                <h3 className="text-sm font-montserrat font-bold tracking-wider text-tienta-teal uppercase">
+                <h3 className="text-base font-montserrat font-extrabold tracking-wider text-tienta-teal uppercase">
                   Promos y Beneficios Exclusivos del Club
                 </h3>
               </div>
@@ -305,23 +305,23 @@ export default function Dashboard() {
                   if (!aplicaNivel) return null
                   
                   return (
-                    <div key={pr.id} className="border border-tienta-gold/10 bg-tienta-crema/25 rounded-2xl p-4 flex flex-col justify-between">
+                    <div key={pr.id} className="border border-tienta-gold/20 bg-tienta-crema/25 rounded-2xl p-4 flex flex-col justify-between">
                       <div>
                         <div className="flex justify-between items-start mb-2">
-                          <h4 className="font-montserrat font-bold text-xs uppercase tracking-wide text-tienta-teal">
+                          <h4 className="font-montserrat font-bold text-sm uppercase tracking-wide text-tienta-teal">
                             {pr.titulo}
                           </h4>
                           {pr.descuento_porcentaje && (
-                            <span className="bg-red-50 text-red-600 px-2 py-0.5 rounded text-[8px] font-semibold border border-red-100 font-montserrat">
+                            <span className="bg-red-50 text-red-600 px-2.5 py-0.5 rounded text-[10px] font-bold border border-red-100 font-montserrat">
                               🏷 {pr.descuento_porcentaje}% OFF
                             </span>
                           )}
                         </div>
-                        <p className="text-[11px] text-black/60 font-lato leading-relaxed">
+                        <p className="text-xs text-black/75 font-lato leading-relaxed font-semibold">
                           {pr.descripcion}
                         </p>
                       </div>
-                      <div className="mt-3 pt-3 border-t border-black/5 flex items-center justify-between text-[8px] text-tienta-goldDark font-montserrat uppercase tracking-widest font-semibold">
+                      <div className="mt-3 pt-3 border-t border-black/5 flex items-center justify-between text-[10px] text-tienta-goldDark font-montserrat uppercase tracking-wider font-extrabold">
                         <span>📅 Vigente: {pr.dias_vigencia.join(', ')}</span>
                       </div>
                     </div>
@@ -335,7 +335,7 @@ export default function Dashboard() {
           <div className="bg-white border border-black/5 rounded-3xl p-6 sm:p-8 shadow-sm text-left">
             <div className="flex items-center gap-2 mb-6">
               <Gift className="text-tienta-teal" size={20} />
-              <h3 className="text-lg font-montserrat font-bold tracking-wider text-tienta-teal uppercase">
+              <h3 className="text-lg font-montserrat font-extrabold tracking-wider text-tienta-teal uppercase">
                 Catálogo de Premios ClubTienta
               </h3>
             </div>
@@ -351,30 +351,30 @@ export default function Dashboard() {
                     className={`border rounded-2xl p-4 flex flex-col justify-between transition-all duration-300 ${
                       alcanzado 
                         ? 'border-tienta-gold bg-tienta-gold/5 shadow-[0_2px_15px_rgba(202,168,112,0.08)]' 
-                        : 'border-black/5 bg-white shadow-[0_2px_10px_rgba(0,0,0,0.01)]'
+                        : 'border-black/10 bg-white shadow-[0_2px_10px_rgba(0,0,0,0.01)] hover:border-black/25'
                     }`}
                   >
                     <div>
                       <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-montserrat font-bold text-xs uppercase tracking-wide text-tienta-teal">
+                        <h4 className="font-montserrat font-bold text-sm uppercase tracking-wide text-tienta-teal">
                           {premio.nombre}
                         </h4>
-                        <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-montserrat uppercase tracking-wider font-bold ${
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-montserrat uppercase tracking-wider font-extrabold ${
                           alcanzado 
-                            ? 'bg-tienta-gold text-white shadow-sm' 
-                            : 'bg-tienta-crema text-tienta-goldDark'
+                            ? 'bg-tienta-gold text-white shadow-sm border border-tienta-gold' 
+                            : 'bg-tienta-crema text-tienta-goldDark border border-tienta-gold/20'
                         }`}>
                           {premio.puntos_requeridos} pts
                         </span>
                       </div>
-                      <p className="text-[11px] text-black/60 font-lato leading-relaxed mb-4">
+                      <p className="text-xs text-black/85 font-lato leading-relaxed mb-4 font-semibold">
                         {premio.descripcion || 'Sin descripción disponible.'}
                       </p>
                     </div>
 
                     <div className="mt-4 pt-3 border-t border-black/5">
                       {alcanzado ? (
-                        <div className="flex items-center gap-1.5 text-tienta-goldDark font-semibold uppercase tracking-widest text-[9px] font-montserrat">
+                        <div className="flex items-center gap-1.5 text-tienta-goldDark font-extrabold uppercase tracking-wider text-xs font-montserrat">
                           <span>✓ ¡Elegible para Canjear en Caja!</span>
                         </div>
                       ) : (
@@ -385,7 +385,7 @@ export default function Dashboard() {
                               style={{ width: `${porcentajePremio}%` }}
                             ></div>
                           </div>
-                          <div className="flex justify-between text-[8px] text-black/35 font-semibold tracking-wider font-montserrat">
+                          <div className="flex justify-between text-[10px] text-black/65 font-bold tracking-wider font-montserrat">
                             <span>Estás al {porcentajePremio}% de conseguirlo</span>
                             <span>Faltan {premio.puntos_requeridos - cliente.puntos_actuales} pts</span>
                           </div>

@@ -82,27 +82,27 @@ export default function Login() {
           </div>
 
           <div className="mb-8 hidden md:block">
-            <h2 className="text-2xl font-montserrat font-semibold tracking-wider text-tienta-teal">
+            <h2 className="text-2xl font-montserrat font-extrabold tracking-wider text-tienta-teal uppercase">
               Ingresar al Club
             </h2>
-            <p className="text-xs text-black/40 mt-1 font-lato">
+            <p className="text-sm text-black/65 mt-1.5 font-semibold font-lato">
               Iniciá sesión para consultar tus puntos o registrar ventas.
             </p>
           </div>
 
           {errorMsg && (
-            <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-100 text-red-600 text-xs text-left">
+            <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm font-bold text-left">
               {errorMsg}
             </div>
           )}
 
           <form onSubmit={handleLogin} className="space-y-5 text-left">
             <div>
-              <label className="block text-[10px] font-montserrat uppercase tracking-widest font-semibold text-black/50 mb-2">
+              <label className="block text-xs font-montserrat uppercase tracking-wider font-extrabold text-tienta-teal mb-2">
                 Correo Electrónico
               </label>
               <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-black/30">
+                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-black/50">
                   <Mail size={16} />
                 </span>
                 <input
@@ -111,17 +111,17 @@ export default function Login() {
                   placeholder="ejemplo@correo.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="input-tienta pl-11 py-3 text-black font-lato"
+                  className="input-tienta pl-11 py-3 text-black font-semibold text-sm"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-[10px] font-montserrat uppercase tracking-widest font-semibold text-black/50 mb-2">
+              <label className="block text-xs font-montserrat uppercase tracking-wider font-extrabold text-tienta-teal mb-2">
                 Contraseña
               </label>
               <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-black/30">
+                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-black/50">
                   <Lock size={16} />
                 </span>
                 <input
@@ -130,7 +130,7 @@ export default function Login() {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="input-tienta pl-11 py-3 text-black"
+                  className="input-tienta pl-11 py-3 text-black font-semibold text-sm"
                 />
               </div>
             </div>

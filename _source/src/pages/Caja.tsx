@@ -342,38 +342,38 @@ export default function Caja() {
               
               <div className="flex justify-between items-start mb-6">
                 <div>
-                  <span className="text-[10px] font-montserrat uppercase tracking-[0.2em] text-tienta-gold font-bold">
+                  <span className="text-xs font-montserrat uppercase tracking-[0.2em] text-tienta-gold font-extrabold">
                     Club de Puntos
                   </span>
-                  <h3 className="text-xl font-montserrat font-semibold tracking-wide uppercase mt-1">
+                  <h3 className="text-xl font-montserrat font-extrabold tracking-wide uppercase mt-1">
                     {cliente.nombre} {cliente.apellido}
                   </h3>
-                  <p className="text-xs text-white/60 font-lato mt-1">
+                  <p className="text-sm text-white/85 font-lato mt-1 font-semibold">
                     DNI: {cliente.dni}
                   </p>
                 </div>
-                <div className="bg-tienta-gold/20 text-tienta-gold border border-tienta-gold/30 px-3 py-1 rounded-full text-[9px] font-montserrat uppercase tracking-wider font-semibold">
+                <div className="bg-tienta-gold/25 text-white border border-tienta-gold/45 px-3 py-1 rounded-full text-[10px] font-montserrat uppercase tracking-wider font-bold">
                   {cliente.nivel}
                 </div>
               </div>
 
               <div className="my-8 text-center relative z-10">
-                <span className="text-[10px] font-montserrat uppercase tracking-widest text-white/50 block mb-1">
+                <span className="text-xs font-montserrat uppercase tracking-wider text-white/75 block mb-1 font-bold">
                   Puntos Acumulados
                 </span>
-                <span className="text-6xl font-montserrat font-light text-tienta-gold tracking-tight">
+                <span className="text-6xl font-montserrat font-extrabold text-tienta-gold tracking-tight">
                   {cliente.puntos_actuales}
                 </span>
-                <span className="text-xs text-white/40 block mt-2 tracking-widest uppercase font-montserrat">
+                <span className="text-xs text-white/75 block mt-2 tracking-widest uppercase font-montserrat font-bold">
                   PUNTOS DISPONIBLES
                 </span>
               </div>
 
-              <div className="h-[1px] bg-white/10 my-4"></div>
+              <div className="h-[1px] bg-white/20 my-4"></div>
 
-              <div className="space-y-2 text-left text-xs font-lato text-white/80">
-                <p><span className="text-white/40 font-montserrat uppercase text-[9px] tracking-wider block">Email:</span> {cliente.email}</p>
-                <p><span className="text-white/40 font-montserrat uppercase text-[9px] tracking-wider block">Teléfono:</span> {cliente.telefono || 'No registrado'}</p>
+              <div className="space-y-2 text-left text-xs font-lato text-white">
+                <p><span className="text-white/70 font-montserrat uppercase text-[10px] tracking-wider block font-bold">Email:</span> {cliente.email}</p>
+                <p><span className="text-white/70 font-montserrat uppercase text-[10px] tracking-wider block font-bold">Teléfono:</span> {cliente.telefono || 'No registrado'}</p>
               </div>
             </div>
 
@@ -381,7 +381,7 @@ export default function Caja() {
             <div className="bg-white border border-black/5 rounded-3xl p-6 shadow-sm text-left">
               <div className="flex items-center gap-2 mb-4">
                 <ShoppingCart className="text-tienta-teal" size={18} />
-                <h4 className="font-montserrat font-bold text-sm tracking-wider uppercase text-tienta-teal">
+                <h4 className="font-montserrat font-extrabold text-sm tracking-wider uppercase text-tienta-teal">
                   Carga por Compra
                 </h4>
               </div>
@@ -395,7 +395,7 @@ export default function Caja() {
 
               <form onSubmit={handleCargarCompra} className="space-y-4">
                 <div>
-                  <label className="block text-[9px] font-montserrat uppercase tracking-widest text-black/50 mb-1.5">
+                  <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
                     Importe de la Compra ($)
                   </label>
                   <input
@@ -404,17 +404,17 @@ export default function Caja() {
                     placeholder="Ej. 10000"
                     value={importeCompra}
                     onChange={(e) => setImporteCompra(e.target.value)}
-                    className="input-tienta py-2 text-black"
+                    className="input-tienta py-2 text-black font-semibold"
                   />
                   {importeCompra && (
-                    <span className="text-[10px] text-tienta-goldDark font-semibold mt-1.5 block tracking-wide">
+                    <span className="text-xs text-tienta-goldDark font-extrabold mt-1.5 block tracking-wide">
                       ⚡ Sumará {previewPuntos()} puntos {cliente.nivel !== 'Standard' && `(Con bono de nivel ${cliente.nivel})`}
                     </span>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-[9px] font-montserrat uppercase tracking-widest text-black/50 mb-1.5">
+                  <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
                     Número de Ticket / Factura
                   </label>
                   <input
@@ -423,14 +423,14 @@ export default function Caja() {
                     placeholder="Ej. T-002-12345"
                     value={ticketCompra}
                     onChange={(e) => setTicketCompra(e.target.value)}
-                    className="input-tienta py-2 text-black"
+                    className="input-tienta py-2 text-black font-semibold"
                   />
                 </div>
 
                 <button
                   type="submit"
                   disabled={loadingCompra}
-                  className="w-full btn-tienta-teal py-3 text-xs tracking-wider cursor-pointer"
+                  className="w-full btn-tienta-teal py-3 text-sm font-bold tracking-wider cursor-pointer"
                 >
                   {loadingCompra ? 'Procesando...' : 'Cargar Puntos'}
                 </button>
@@ -441,7 +441,7 @@ export default function Caja() {
             <div className="bg-white border border-black/5 rounded-3xl p-6 shadow-sm text-left">
               <div className="flex items-center gap-2 mb-4">
                 <FileText className="text-tienta-goldDark" size={18} />
-                <h4 className="font-montserrat font-bold text-sm tracking-wider uppercase text-tienta-goldDark">
+                <h4 className="font-montserrat font-extrabold text-sm tracking-wider uppercase text-tienta-goldDark">
                   Carga Manual / Especial
                 </h4>
               </div>
@@ -455,7 +455,7 @@ export default function Caja() {
 
               <form onSubmit={handleCargarManual} className="space-y-4">
                 <div>
-                  <label className="block text-[9px] font-montserrat uppercase tracking-widest text-black/50 mb-1.5">
+                  <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
                     Puntos a Asignar
                   </label>
                   <input
@@ -464,12 +464,12 @@ export default function Caja() {
                     placeholder="Ej. 100 o -50"
                     value={puntosManuales}
                     onChange={(e) => setPuntosManuales(e.target.value)}
-                    className="input-tienta py-2 text-black"
+                    className="input-tienta py-2 text-black font-semibold"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[9px] font-montserrat uppercase tracking-widest text-black/50 mb-1.5">
+                  <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
                     Concepto / Motivo de Auditoría
                   </label>
                   <textarea
@@ -477,14 +477,14 @@ export default function Caja() {
                     placeholder="Ej. Promo especial apertura / compensación por retraso"
                     value={detalleManual}
                     onChange={(e) => setDetalleManual(e.target.value)}
-                    className="w-full rounded-2xl border border-black/10 bg-white px-4 py-2.5 text-sm focus:border-tienta-gold focus:outline-none focus:ring-1 focus:ring-tienta-gold transition-all duration-300 placeholder:text-black/30 text-black h-20 resize-none"
+                    className="w-full rounded-2xl border border-black/10 bg-white px-4 py-2.5 text-sm focus:border-tienta-gold focus:outline-none focus:ring-1 focus:ring-tienta-gold transition-all duration-300 placeholder:text-black/50 text-black h-24 resize-none font-medium"
                   />
                 </div>
 
                 <button
                   type="submit"
                   disabled={loadingManual}
-                  className="w-full btn-tienta-outline py-3 text-xs tracking-wider cursor-pointer"
+                  className="w-full btn-tienta-outline py-3 text-sm font-bold tracking-wider cursor-pointer"
                 >
                   {loadingManual ? 'Procesando...' : 'Aplicar Carga Manual'}
                 </button>
@@ -500,17 +500,17 @@ export default function Caja() {
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
                   <Gift className="text-tienta-teal" size={20} />
-                  <h3 className="text-lg font-montserrat font-bold tracking-wider text-tienta-teal uppercase">
+                  <h3 className="text-lg font-montserrat font-extrabold tracking-wider text-tienta-teal uppercase">
                     Canje de Premios
                   </h3>
                 </div>
-                <span className="text-[10px] text-black/40 font-montserrat uppercase tracking-widest">
+                <span className="text-xs text-black/75 font-montserrat uppercase tracking-wider font-extrabold">
                   Saldo del Cliente: {cliente.puntos_actuales} pts
                 </span>
               </div>
 
               {premios.length === 0 ? (
-                <p className="text-sm text-black/40 py-8 text-center">No hay premios cargados en el catálogo actualmente.</p>
+                <p className="text-sm text-black/50 py-8 text-center font-medium">No hay premios cargados en el catálogo actualmente.</p>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {premios.map((premio) => {
@@ -520,20 +520,20 @@ export default function Caja() {
                         key={premio.id} 
                         className={`border rounded-2xl p-4 flex flex-col justify-between transition-all duration-300 ${
                           noAlcanza 
-                            ? 'bg-black/[0.01] border-black/5 opacity-55' 
-                            : 'bg-white border-black/5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.05)] hover:border-tienta-gold/20'
+                            ? 'bg-black/[0.02] border-black/5 opacity-60' 
+                            : 'bg-white border-black/10 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.05)] hover:border-tienta-gold/30'
                         }`}
                       >
                         <div>
                           <div className="flex justify-between items-start mb-2">
-                            <h4 className="font-montserrat font-bold text-xs uppercase tracking-wide text-tienta-teal">
+                            <h4 className="font-montserrat font-bold text-sm uppercase tracking-wide text-tienta-teal">
                               {premio.nombre}
                             </h4>
-                            <span className="bg-tienta-crema text-tienta-goldDark px-2.5 py-0.5 rounded-full text-[9px] font-montserrat uppercase tracking-wider font-bold">
+                            <span className="bg-tienta-crema text-tienta-goldDark px-2.5 py-0.5 rounded-full text-xs font-montserrat uppercase tracking-wider font-extrabold border border-tienta-gold/20">
                               {premio.puntos_requeridos} pts
                             </span>
                           </div>
-                          <p className="text-[11px] text-black/60 font-lato leading-relaxed mb-4">
+                          <p className="text-xs text-black/80 font-lato leading-relaxed font-semibold mb-4">
                             {premio.descripcion || 'Sin descripción disponible.'}
                           </p>
                         </div>
@@ -541,10 +541,10 @@ export default function Caja() {
                         <button
                           onClick={() => handleCanjearPremio(premio)}
                           disabled={noAlcanza}
-                          className={`w-full py-2.5 rounded-full font-montserrat uppercase tracking-widest text-[9px] font-bold cursor-pointer transition-all duration-200 ${
+                          className={`w-full py-2.5 rounded-full font-montserrat uppercase tracking-widest text-[10px] font-extrabold cursor-pointer transition-all duration-200 ${
                             noAlcanza
-                              ? 'bg-black/5 text-black/30 cursor-not-allowed'
-                              : 'bg-tienta-gold text-white hover:bg-tienta-teal'
+                              ? 'bg-black/5 text-black/40 cursor-not-allowed'
+                              : 'bg-tienta-gold text-white hover:bg-tienta-teal shadow-sm active:scale-95'
                           }`}
                         >
                           {noAlcanza ? 'Puntos Insuficientes' : 'Canjear Premio'}
@@ -558,32 +558,32 @@ export default function Caja() {
 
             {/* Historial Reciente de Operaciones */}
             <div className="bg-white border border-black/5 rounded-3xl p-6 sm:p-8 shadow-sm text-left">
-              <h3 className="text-lg font-montserrat font-bold tracking-wider text-tienta-teal mb-6 uppercase">
+              <h3 className="text-lg font-montserrat font-extrabold tracking-wider text-tienta-teal mb-6 uppercase">
                 Historial Reciente (Últimos 10 movimientos)
               </h3>
 
               {loadingHistorial ? (
-                <div className="flex items-center justify-center py-8 gap-2 text-black/50 text-xs">
-                  <RefreshCw size={14} className="animate-spin" /> Cargando historial...
+                <div className="flex items-center justify-center py-8 gap-2 text-black/70 text-sm font-semibold">
+                  <RefreshCw size={16} className="animate-spin" /> Cargando historial...
                 </div>
               ) : historial.length === 0 ? (
-                <p className="text-sm text-black/40 py-8 text-center">Este cliente aún no registra transacciones.</p>
+                <p className="text-sm text-black/50 py-8 text-center font-medium">Este cliente aún no registra transacciones.</p>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-xs font-lato text-left">
+                  <table className="w-full text-sm font-lato text-left">
                     <thead>
-                      <tr className="border-b border-black/5 text-black/40 font-montserrat uppercase text-[9px] tracking-wider">
-                        <th className="pb-3 font-semibold">Fecha</th>
-                        <th className="pb-3 font-semibold">Operación</th>
-                        <th className="pb-3 font-semibold">Ticket/Ref</th>
-                        <th className="pb-3 font-semibold text-right">Importe</th>
-                        <th className="pb-3 font-semibold text-right">Puntos</th>
+                      <tr className="border-b border-black/10 text-black/70 font-montserrat uppercase text-xs tracking-wider">
+                        <th className="pb-3 font-extrabold">Fecha</th>
+                        <th className="pb-3 font-extrabold">Operación</th>
+                        <th className="pb-3 font-extrabold">Ticket/Ref</th>
+                        <th className="pb-3 font-extrabold text-right">Importe</th>
+                        <th className="pb-3 font-extrabold text-right">Puntos</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-black/5">
+                    <tbody className="divide-y divide-black/5 font-semibold text-black/85">
                       {historial.map((tr) => (
                         <tr key={tr.id} className="hover:bg-tienta-crema/20">
-                          <td className="py-3 text-black/60">
+                          <td className="py-3 text-black/70">
                             {new Date(tr.created_at).toLocaleDateString('es-AR', {
                               day: '2-digit',
                               month: '2-digit',
@@ -593,18 +593,18 @@ export default function Caja() {
                             })}
                           </td>
                           <td className="py-3">
-                            <span className="font-semibold block text-black">
+                            <span className="font-bold block text-black">
                               {tr.tipo === 'carga_compra' ? 'Compra' : tr.tipo === 'carga_manual' ? 'Carga Manual' : 'Canje'}
                             </span>
-                            <span className="text-[10px] text-black/40 block mt-0.5">{tr.detalle}</span>
+                            <span className="text-xs text-black/65 block mt-0.5 font-medium">{tr.detalle}</span>
                           </td>
-                          <td className="py-3 text-black/50 font-semibold">
+                          <td className="py-3 text-black/65 font-bold">
                             {tr.ticket_factura || '-'}
                           </td>
-                          <td className="py-3 text-right font-semibold text-black/75">
+                          <td className="py-3 text-right font-extrabold text-black/80">
                             {tr.importe ? `$${Number(tr.importe).toLocaleString('es-AR')}` : '-'}
                           </td>
-                          <td className={`py-3 text-right font-bold font-montserrat text-sm ${
+                          <td className={`py-3 text-right font-bold font-montserrat text-base ${
                             tr.puntos > 0 ? 'text-green-600' : 'text-red-500'
                           }`}>
                             {tr.puntos > 0 ? `+${tr.puntos}` : tr.puntos}
@@ -624,12 +624,12 @@ export default function Caja() {
 
       {/* Si no hay búsqueda o está vacío */}
       {!cliente && !loadingSearch && (
-        <div className="bg-white/40 border border-dashed border-black/10 rounded-3xl py-24 text-center">
-          <IceCream className="mx-auto text-tienta-teal/20 mb-4" size={48} />
-          <h3 className="font-montserrat font-bold text-sm tracking-widest text-tienta-teal/40 uppercase">
+        <div className="bg-white/40 border border-dashed border-black/15 rounded-3xl py-24 text-center">
+          <IceCream className="mx-auto text-tienta-teal/30 mb-4" size={48} />
+          <h3 className="font-montserrat font-extrabold text-base tracking-wider text-tienta-teal/70 uppercase">
             Ingresá el DNI del socio para operar en caja
           </h3>
-          <p className="text-xs text-black/30 mt-1 max-w-sm mx-auto font-lato leading-relaxed">
+          <p className="text-sm text-black/60 mt-2 max-w-sm mx-auto font-lato leading-relaxed font-medium">
             Desde aquí podrás asignar puntos por consumos, realizar canjes de premios e ingresar ajustes de auditoría con seguridad.
           </p>
         </div>

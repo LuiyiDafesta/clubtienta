@@ -133,27 +133,27 @@ export default function Registro() {
           
           <div className="mb-8">
             <div className="md:hidden flex justify-start mb-6">
-              <Link to="/" className="text-tienta-teal/60 hover:text-tienta-teal flex items-center gap-2 text-xs font-montserrat uppercase tracking-widest">
+              <Link to="/" className="text-tienta-teal/60 hover:text-tienta-teal flex items-center gap-2 text-xs font-montserrat uppercase tracking-wider font-bold">
                 <ArrowLeft size={12} /> Volver
               </Link>
             </div>
             
-            <h2 className="text-2xl font-montserrat font-semibold tracking-wider text-tienta-teal">
+            <h2 className="text-2xl font-montserrat font-extrabold tracking-wider text-tienta-teal uppercase">
               Asociarse al Club
             </h2>
-            <p className="text-xs text-black/40 mt-1 font-lato">
+            <p className="text-sm text-black/65 mt-1.5 font-semibold font-lato">
               Completá tus datos para crear tu tarjeta de fidelidad virtual.
             </p>
           </div>
 
           {errorMsg && (
-            <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-100 text-red-600 text-xs text-left">
+            <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm font-bold text-left">
               {errorMsg}
             </div>
           )}
 
           {successMsg && (
-            <div className="mb-6 p-4 rounded-xl bg-green-50 border border-green-100 text-green-600 text-xs text-left">
+            <div className="mb-6 p-4 rounded-xl bg-green-50 border border-green-100 text-green-600 text-sm font-bold text-left">
               {successMsg}
             </div>
           )}
@@ -163,11 +163,11 @@ export default function Registro() {
             {/* Grid de Nombre y Apellido */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[10px] font-montserrat uppercase tracking-widest font-semibold text-black/50 mb-2">
+                <label className="block text-xs font-montserrat uppercase tracking-wider font-extrabold text-tienta-teal mb-2">
                   Nombre
                 </label>
                 <div className="relative">
-                  <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-black/30">
+                  <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-black/50">
                     <User size={14} />
                   </span>
                   <input
@@ -176,17 +176,17 @@ export default function Registro() {
                     placeholder="Ej. Juan"
                     value={nombre}
                     onChange={(e) => setNombre(e.target.value)}
-                    className="input-tienta pl-11 py-2.5 text-black"
+                    className="input-tienta pl-11 py-2.5 text-black font-semibold text-sm"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[10px] font-montserrat uppercase tracking-widest font-semibold text-black/50 mb-2">
+                <label className="block text-xs font-montserrat uppercase tracking-wider font-extrabold text-tienta-teal mb-2">
                   Apellido
                 </label>
                 <div className="relative">
-                  <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-black/30">
+                  <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-black/50">
                     <User size={14} />
                   </span>
                   <input
@@ -195,7 +195,7 @@ export default function Registro() {
                     placeholder="Ej. Pérez"
                     value={apellido}
                     onChange={(e) => setApellido(e.target.value)}
-                    className="input-tienta pl-11 py-2.5 text-black"
+                    className="input-tienta pl-11 py-2.5 text-black font-semibold text-sm"
                   />
                 </div>
               </div>
@@ -204,11 +204,11 @@ export default function Registro() {
             {/* Grid de DNI y Teléfono */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[10px] font-montserrat uppercase tracking-widest font-semibold text-black/50 mb-2">
+                <label className="block text-xs font-montserrat uppercase tracking-wider font-extrabold text-tienta-teal mb-2">
                   DNI (Único para Caja)
                 </label>
                 <div className="relative">
-                  <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-black/30">
+                  <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-black/50">
                     <CreditCard size={14} />
                   </span>
                   <input
@@ -217,17 +217,17 @@ export default function Registro() {
                     placeholder="Sin puntos ni espacios"
                     value={dni}
                     onChange={(e) => setDni(e.target.value)}
-                    className="input-tienta pl-11 py-2.5 text-black"
+                    className="input-tienta pl-11 py-2.5 text-black font-semibold text-sm"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[10px] font-montserrat uppercase tracking-widest font-semibold text-black/50 mb-2">
+                <label className="block text-xs font-montserrat uppercase tracking-wider font-extrabold text-tienta-teal mb-2">
                   Teléfono
                 </label>
                 <div className="relative">
-                  <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-black/30">
+                  <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-black/50">
                     <Phone size={14} />
                   </span>
                   <input
@@ -235,7 +235,7 @@ export default function Registro() {
                     placeholder="Ej. 3416123456"
                     value={telefono}
                     onChange={(e) => setTelefono(e.target.value)}
-                    className="input-tienta pl-11 py-2.5 text-black"
+                    className="input-tienta pl-11 py-2.5 text-black font-semibold text-sm"
                   />
                 </div>
               </div>
@@ -243,11 +243,11 @@ export default function Registro() {
 
             {/* Email */}
             <div>
-              <label className="block text-[10px] font-montserrat uppercase tracking-widest font-semibold text-black/50 mb-2">
+              <label className="block text-xs font-montserrat uppercase tracking-wider font-extrabold text-tienta-teal mb-2">
                 Correo Electrónico (Único para Login)
               </label>
               <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-black/30">
+                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-black/50">
                   <Mail size={14} />
                 </span>
                 <input
@@ -256,18 +256,18 @@ export default function Registro() {
                   placeholder="juanperez@correo.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="input-tienta pl-11 py-2.5 text-black"
+                  className="input-tienta pl-11 py-2.5 text-black font-semibold text-sm"
                 />
               </div>
             </div>
 
             {/* Contraseña */}
             <div>
-              <label className="block text-[10px] font-montserrat uppercase tracking-widest font-semibold text-black/50 mb-2">
+              <label className="block text-xs font-montserrat uppercase tracking-wider font-extrabold text-tienta-teal mb-2">
                 Contraseña
               </label>
               <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-black/30">
+                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-black/50">
                   <Lock size={14} />
                 </span>
                 <input
@@ -276,7 +276,7 @@ export default function Registro() {
                   placeholder="Mínimo 6 caracteres"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="input-tienta pl-11 py-2.5 text-black"
+                  className="input-tienta pl-11 py-2.5 text-black font-semibold text-sm"
                 />
               </div>
             </div>

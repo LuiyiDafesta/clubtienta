@@ -50,6 +50,16 @@
   @apply w-full rounded-full border border-black/10 bg-white px-5 py-3 text-sm focus:border-tienta-gold focus:outline-none focus:ring-1 focus:ring-tienta-gold transition-all duration-300 placeholder:text-black/30;
 }
 
+html {
+  font-size: 17px; /* Aumenta proporcionalmente toda la tipografía de la app para máxima legibilidad */
+}
+
+@media (min-width: 768px) {
+  html {
+    font-size: 18px; /* Aumenta un poco más en pantallas de escritorio donde opera el cajero */
+  }
+}
+
 body {
   @apply bg-tienta-crema text-tienta-carbon font-lato antialiased;
   background-color: #FAF8F5; /* Forzar el color de fondo crema de Tienta */

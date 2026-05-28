@@ -60,7 +60,7 @@ export default function Navbar() {
               <span className="font-montserrat text-2xl font-light tracking-[0.25em] text-white">
                 TIENTA
               </span>
-              <span className="font-montserrat text-[9px] font-semibold tracking-[0.35em] text-tienta-gold uppercase -mt-1">
+              <span className="font-montserrat text-[10px] font-extrabold tracking-[0.35em] text-tienta-goldLight uppercase -mt-0.5">
                 CLUB DE PUNTOS
               </span>
             </div>
@@ -72,20 +72,20 @@ export default function Navbar() {
               <>
                 <button
                   onClick={() => navigate('/caja')}
-                  className={`font-montserrat text-xs tracking-widest font-semibold uppercase hover:text-tienta-gold transition-colors duration-200 py-2 flex items-center gap-2 ${
-                    location.pathname === '/caja' ? 'text-tienta-gold border-b border-tienta-gold' : 'text-white/80'
+                  className={`font-montserrat text-sm tracking-widest font-extrabold uppercase hover:text-tienta-goldLight transition-colors duration-200 py-2 flex items-center gap-2 ${
+                    location.pathname === '/caja' ? 'text-tienta-goldLight border-b-2 border-tienta-goldLight' : 'text-white/80'
                   }`}
                 >
-                  <Award size={14} /> Línea de Caja
+                  <Award size={16} /> Línea de Caja
                 </button>
                 {userRole === 'admin' && (
                   <button
                     onClick={() => navigate('/admin')}
-                    className={`font-montserrat text-xs tracking-widest font-semibold uppercase hover:text-tienta-gold transition-colors duration-200 py-2 flex items-center gap-2 ${
-                      location.pathname === '/admin' ? 'text-tienta-gold border-b border-tienta-gold' : 'text-white/80'
+                    className={`font-montserrat text-sm tracking-widest font-extrabold uppercase hover:text-tienta-goldLight transition-colors duration-200 py-2 flex items-center gap-2 ${
+                      location.pathname === '/admin' ? 'text-tienta-goldLight border-b-2 border-tienta-goldLight' : 'text-white/80'
                     }`}
                   >
-                    <ClipboardList size={14} /> Panel Administrador
+                    <ClipboardList size={16} /> Panel Administrador
                   </button>
                 )}
               </>
@@ -95,11 +95,11 @@ export default function Navbar() {
               <>
                 <button
                   onClick={() => navigate('/dashboard')}
-                  className={`font-montserrat text-xs tracking-widest font-semibold uppercase hover:text-tienta-gold transition-colors duration-200 py-2 flex items-center gap-2 ${
-                    location.pathname === '/dashboard' ? 'text-tienta-gold border-b border-tienta-gold' : 'text-white/80'
+                  className={`font-montserrat text-sm tracking-widest font-extrabold uppercase hover:text-tienta-goldLight transition-colors duration-200 py-2 flex items-center gap-2 ${
+                    location.pathname === '/dashboard' ? 'text-tienta-goldLight border-b-2 border-tienta-goldLight' : 'text-white/80'
                   }`}
                 >
-                  <LayoutDashboard size={14} /> Mi Tarjeta
+                  <LayoutDashboard size={16} /> Mi Tarjeta
                 </button>
               </>
             )}
@@ -108,10 +108,10 @@ export default function Navbar() {
           {/* Perfil de Usuario y Logout Manual */}
           <div className="flex items-center space-x-4">
             <div className="hidden sm:flex flex-col text-right">
-              <span className="text-xs font-semibold tracking-wider text-white/90">
+              <span className="text-xs font-bold tracking-wider text-white/95">
                 {userEmail?.split('@')[0]}
               </span>
-              <span className="text-[10px] font-montserrat uppercase tracking-widest text-tienta-gold">
+              <span className="text-xs font-montserrat font-bold uppercase tracking-wider text-tienta-goldLight">
                 {userRole === 'admin' ? 'Administrador' : userRole === 'cajero' ? 'Cajero' : 'Socio'}
               </span>
             </div>
@@ -120,10 +120,10 @@ export default function Navbar() {
 
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 bg-tienta-gold text-white px-4 py-2 rounded-full font-montserrat uppercase tracking-[0.12em] text-[10px] font-semibold hover:bg-tienta-tealDark hover:border-tienta-gold hover:border transition-all duration-300 shadow-sm active:scale-95 cursor-pointer"
+              className="flex items-center gap-2 bg-tienta-goldLight text-tienta-teal px-5 py-2.5 rounded-full font-montserrat uppercase tracking-[0.12em] text-xs font-extrabold hover:bg-white hover:text-tienta-teal transition-all duration-300 shadow-md active:scale-95 cursor-pointer"
               title="Cerrar turno / sesión"
             >
-              <LogOut size={12} />
+              <LogOut size={14} />
               <span className="hidden md:inline">Cerrar Sesión</span>
             </button>
           </div>

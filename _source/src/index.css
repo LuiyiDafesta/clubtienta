@@ -5,6 +5,7 @@
 @theme {
   --color-tienta-gold: #caa870;      /* Dorado Arena oficial de Tienta */
   --color-tienta-goldDark: #b59469;  /* Dorado para textos legibles */
+  --color-tienta-goldLight: #fad08c; /* Dorado brillante de alto contraste sobre verde oscuro */
   --color-tienta-teal: #026163;      /* Verde azulado oficial de Tienta */
   --color-tienta-tealDark: #01494a;  /* Verde azulado oscuro para hovers */
   --color-tienta-crema: #FAF8F5;     /* Fondo crema de Tienta */

@@ -101,6 +101,14 @@ export default function Navbar() {
                 >
                   <LayoutDashboard size={16} /> Mi Tarjeta
                 </button>
+                <button
+                  onClick={() => navigate('/movimientos')}
+                  className={`font-montserrat text-sm tracking-widest font-extrabold uppercase hover:text-tienta-goldLight transition-colors duration-200 py-2 flex items-center gap-2 ${
+                    location.pathname === '/movimientos' ? 'text-tienta-goldLight border-b-2 border-tienta-goldLight' : 'text-white/80'
+                  }`}
+                >
+                  <ClipboardList size={16} /> Mis Movimientos
+                </button>
               </>
             )}
           </div>

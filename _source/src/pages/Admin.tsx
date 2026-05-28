@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { 
   Settings, Gift, Percent, ShieldCheck, Plus, Trash2, 
-  Calendar, RefreshCw, Layers 
+  Calendar, RefreshCw, Layers, Mail, MessageSquare, Search, ChevronLeft, ChevronRight
 } from 'lucide-react'
 
 // Interfaces
@@ -43,13 +43,36 @@ interface TransaccionAuditoria {
 }
 
 export default function Admin() {
-  const [activeTab, setActiveTab] = useState<'config' | 'premios' | 'promos' | 'auditoria'>('config')
+  const [activeTab, setActiveTab] = useState<'config' | 'premios' | 'promos' | 'auditoria' | 'crm'>('config')
 
   // --- CONFIGURACIÓN ESTADOS ---
   const [valorPunto, setValorPunto] = useState('200')
   const [expiracionMeses, setExpiracionMeses] = useState('0')
+  const [puntosBienvenida, setPuntosBienvenida] = useState('50')
+  const [puntosReferido, setPuntosReferido] = useState('100')
+  const [webhookN8n, setWebhookN8n] = useState('')
   const [loadingConfig, setLoadingConfig] = useState(false)
   const [successConfig, setSuccessConfig] = useState(false)
+
+  // --- CRM ESTADOS ---
+  interface ClienteCRM {
+    id: string
+    dni: string
+    nombre: string
+    apellido: string
+    telefono: string
+    email: string
+    nivel: string
+    puntos_actuales: number
+    created_at: string
+  }
+
+  const [clientes, setClientes] = useState<ClienteCRM[]>([])
+  const [loadingCRM, setLoadingCRM] = useState(false)
+  const [crmBusqueda, setCrmBusqueda] = useState('')
+  const [crmPagina, setCrmPagina] = useState(0)
+  const [crmTotalFilas, setCrmTotalFilas] = useState(0)
+  const itemsPorPagina = 15
 
   // --- PREMIOS ESTADOS ---
   const [premios, setPremios] = useState<Premio[]>([])
@@ -90,8 +113,15 @@ export default function Admin() {
     if (data) {
       const p = data.find(c => c.clave === 'valor_punto')
       const e = data.find(c => c.clave === 'expiracion_meses')
+      const pb = data.find(c => c.clave === 'puntos_bienvenida')
+      const pr = data.find(c => c.clave === 'puntos_referido')
+      const wh = data.find(c => c.clave === 'webhook_n8n')
+      
       if (p) setValorPunto(p.valor)
       if (e) setExpiracionMeses(e.valor)
+      if (pb) setPuntosBienvenida(pb.valor)
+      if (pr) setPuntosReferido(pr.valor)
+      if (wh) setWebhookN8n(wh.valor)
     }
   }
 
@@ -103,19 +133,23 @@ export default function Admin() {
     try {
       const { data: { session } } = await supabase.auth.getSession()
 
-      const { error: error1 } = await supabase.from('configuraciones').upsert({
-        clave: 'valor_punto',
-        valor: valorPunto,
-        updated_by: session?.user?.id
-      }, { onConflict: 'clave' })
+      const keys = [
+        { clave: 'valor_punto', valor: valorPunto },
+        { clave: 'expiracion_meses', valor: expiracionMeses },
+        { clave: 'puntos_bienvenida', valor: puntosBienvenida },
+        { clave: 'puntos_referido', valor: puntosReferido },
+        { clave: 'webhook_n8n', valor: webhookN8n }
+      ]
 
-      const { error: error2 } = await supabase.from('configuraciones').upsert({
-        clave: 'expiracion_meses',
-        valor: expiracionMeses,
-        updated_by: session?.user?.id
-      }, { onConflict: 'clave' })
-
-      if (error1 || error2) throw error1 || error2
+      for (const item of keys) {
+        const { error } = await supabase.from('configuraciones').upsert({
+          clave: item.clave,
+          valor: item.valor,
+          updated_by: session?.user?.id
+        }, { onConflict: 'clave' })
+        
+        if (error) throw error
+      }
 
       setSuccessConfig(true)
       setTimeout(() => setSuccessConfig(false), 3000)
@@ -301,6 +335,50 @@ export default function Admin() {
     }
   }
 
+  // --- 5. CRM CLIENTES LOGICA ---
+  const fetchClientesCRM = async () => {
+    setLoadingCRM(true)
+    try {
+      let queryBuilder = supabase
+        .from('profiles')
+        .select('*', { count: 'exact' })
+        
+      if (crmBusqueda.trim()) {
+        const searchVal = crmBusqueda.trim()
+        queryBuilder = queryBuilder.or(
+          `dni.ilike.%${searchVal}%,nombre.ilike.%${searchVal}%,apellido.ilike.%${searchVal}%,email.ilike.%${searchVal}%`
+        )
+      }
+
+      const start = crmPagina * itemsPorPagina
+      const end = start + itemsPorPagina - 1
+      
+      const { data, count, error } = await queryBuilder
+        .order('created_at', { ascending: false })
+        .range(start, end)
+
+      if (error) throw error
+      if (data) setClientes(data)
+      if (count !== null) setCrmTotalFilas(count)
+    } catch (err) {
+      console.error('Error fetching CRM clients:', err)
+    } finally {
+      setLoadingCRM(false)
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab === 'crm') {
+      fetchClientesCRM()
+    }
+  }, [activeTab, crmPagina])
+
+  const handleBuscarCRM = (e: React.FormEvent) => {
+    e.preventDefault()
+    setCrmPagina(0)
+    fetchClientesCRM()
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-left">
       
@@ -347,6 +425,14 @@ export default function Admin() {
         >
           <span className="flex items-center gap-2"><ShieldCheck size={16} /> Auditoría General</span>
         </button>
+        <button
+          onClick={() => setActiveTab('crm')}
+          className={`pb-4 text-sm font-montserrat uppercase tracking-wider font-bold cursor-pointer transition-all shrink-0 ${
+            activeTab === 'crm' ? 'border-b-2 border-tienta-gold text-tienta-teal' : 'text-black/60 hover:text-black/90'
+          }`}
+        >
+          <span className="flex items-center gap-2"><Layers size={16} /> Clientes (CRM)</span>
+        </button>
       </div>
 
       {/* TAB CONTENT: CONFIGURACIÓN */}
@@ -364,39 +450,91 @@ export default function Admin() {
           )}
 
           <form onSubmit={handleGuardarConfig} className="space-y-6">
-            <div>
-              <label className="block text-sm font-montserrat uppercase tracking-wider font-bold text-tienta-teal mb-2">
-                Equivalencia en Pesos de 1 Punto ($)
-              </label>
-              <input
-                type="number"
-                required
-                value={valorPunto}
-                onChange={(e) => setValorPunto(e.target.value)}
-                className="input-tienta max-w-sm text-black py-3 text-base font-semibold"
-              />
-              <span className="text-xs text-black/65 mt-1.5 block leading-relaxed font-medium">
-                Ej: Si configurás 200 pesos, el cliente recibirá 1 punto por cada $200 consumidos en caja.
-              </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-montserrat uppercase tracking-wider font-bold text-tienta-teal mb-2">
+                  Valor de 1 Punto ($)
+                </label>
+                <input
+                  type="number"
+                  required
+                  value={valorPunto}
+                  onChange={(e) => setValorPunto(e.target.value)}
+                  className="input-tienta text-black py-3 text-base font-semibold"
+                />
+                <span className="text-xs text-black/65 mt-1.5 block leading-relaxed font-medium">
+                  Cantidad de pesos consumidos para sumar 1 punto en sucursal.
+                </span>
+              </div>
+
+              <div>
+                <label className="block text-sm font-montserrat uppercase tracking-wider font-bold text-tienta-teal mb-2">
+                  Expiración de Puntos (Meses)
+                </label>
+                <input
+                  type="number"
+                  required
+                  value={expiracionMeses}
+                  onChange={(e) => setExpiracionMeses(e.target.value)}
+                  className="input-tienta text-black py-3 text-base font-semibold"
+                />
+                <span className="text-xs text-black/65 mt-1.5 block leading-relaxed font-medium">
+                  Ingresá 0 para que los puntos nunca expiren (vencimiento desactivado).
+                </span>
+              </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-montserrat uppercase tracking-wider font-bold text-tienta-teal mb-2">
-                Expiración de Puntos (Meses)
-              </label>
-              <input
-                type="number"
-                required
-                value={expiracionMeses}
-                onChange={(e) => setExpiracionMeses(e.target.value)}
-                className="input-tienta max-w-sm text-black py-3 text-base font-semibold"
-              />
-              <span className="text-xs text-black/65 mt-1.5 block leading-relaxed font-medium">
-                Ingresá 0 para que los puntos nunca expiren (vencimiento desactivado).
-              </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-black/5">
+              <div>
+                <label className="block text-sm font-montserrat uppercase tracking-wider font-bold text-tienta-teal mb-2">
+                  Puntos de Bienvenida 🎁
+                </label>
+                <input
+                  type="number"
+                  required
+                  value={puntosBienvenida}
+                  onChange={(e) => setPuntosBienvenida(e.target.value)}
+                  className="input-tienta text-black py-3 text-base font-semibold"
+                />
+                <span className="text-xs text-black/65 mt-1.5 block leading-relaxed font-medium">
+                  Puntos acreditados automáticamente al registrarse en el Club.
+                </span>
+              </div>
+
+              <div>
+                <label className="block text-sm font-montserrat uppercase tracking-wider font-bold text-tienta-teal mb-2">
+                  Puntos por Referir Amigos ⭐
+                </label>
+                <input
+                  type="number"
+                  required
+                  value={puntosReferido}
+                  onChange={(e) => setPuntosReferido(e.target.value)}
+                  className="input-tienta text-black py-3 text-base font-semibold"
+                />
+                <span className="text-xs text-black/65 mt-1.5 block leading-relaxed font-medium">
+                  Bono acreditado al socio que recomendó cuando el amigo se asocia.
+                </span>
+              </div>
             </div>
 
             <div className="pt-4 border-t border-black/5">
+              <label className="block text-sm font-montserrat uppercase tracking-wider font-bold text-tienta-teal mb-2">
+                URL de Webhook CRM Externo (n8n / make)
+              </label>
+              <input
+                type="url"
+                placeholder="https://tu-instancia-n8n.com/g/webhook/..."
+                value={webhookN8n}
+                onChange={(e) => setWebhookN8n(e.target.value)}
+                className="input-tienta text-black py-3 text-base font-semibold w-full"
+              />
+              <span className="text-xs text-black/65 mt-1.5 block leading-relaxed font-medium">
+                URL de webhook a la que se enviará automáticamente un POST JSON cada vez que un cliente se asocie.
+              </span>
+            </div>
+
+            <div className="pt-6 border-t border-black/5">
               <button
                 type="submit"
                 disabled={loadingConfig}
@@ -880,6 +1018,167 @@ export default function Admin() {
                 </tbody>
               </table>
             </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB CONTENT: CLIENTES (CRM) */}
+      {activeTab === 'crm' && (
+        <div className="bg-white border border-black/5 rounded-3xl p-6 sm:p-8 shadow-sm">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+            <div>
+              <h2 className="text-lg font-montserrat font-bold tracking-wider text-tienta-teal uppercase flex items-center gap-2">
+                <Layers size={18} /> Mini-CRM de Clientes del Club
+              </h2>
+              <p className="text-xs text-black/65 font-semibold font-lato mt-0.5">
+                Total de socios registrados: {crmTotalFilas}
+              </p>
+            </div>
+            
+            <button
+              onClick={fetchClientesCRM}
+              className="flex items-center gap-1.5 text-xs text-tienta-goldDark font-semibold hover:text-tienta-teal tracking-wider uppercase font-montserrat cursor-pointer border border-tienta-gold/20 px-3.5 py-1.5 rounded-full hover:bg-tienta-gold/5"
+            >
+              <RefreshCw size={12} className={loadingCRM ? 'animate-spin' : ''} /> Actualizar CRM
+            </button>
+          </div>
+
+          {/* Buscador */}
+          <form onSubmit={handleBuscarCRM} className="flex gap-2 max-w-md mb-6">
+            <div className="relative flex-1">
+              <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-black/50">
+                <Search size={14} />
+              </span>
+              <input
+                type="text"
+                placeholder="Buscar por DNI, Nombre, Apellido, Email..."
+                value={crmBusqueda}
+                onChange={(e) => setCrmBusqueda(e.target.value)}
+                className="input-tienta pl-11 py-2 text-sm font-semibold w-full"
+              />
+            </div>
+            <button
+              type="submit"
+              className="btn-tienta-teal px-5 py-2 text-xs font-bold font-montserrat uppercase tracking-wider cursor-pointer"
+            >
+              Buscar
+            </button>
+          </form>
+
+          {/* Tabla CRM */}
+          {loadingCRM ? (
+            <div className="flex justify-center items-center py-16 gap-2 text-black/60 text-sm">
+              <RefreshCw size={16} className="animate-spin" /> Cargando listado de clientes...
+            </div>
+          ) : clientes.length === 0 ? (
+            <p className="text-sm text-black/50 py-16 text-center">No se encontraron clientes registrados.</p>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm font-lato text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-black/10 text-black/70 font-montserrat uppercase text-xs tracking-wider">
+                      <th className="pb-3 font-extrabold">Fecha Reg.</th>
+                      <th className="pb-3 font-extrabold">DNI / Socio</th>
+                      <th className="pb-3 font-extrabold">Contacto</th>
+                      <th className="pb-3 font-extrabold">Nivel</th>
+                      <th className="pb-3 font-extrabold text-right">Puntos Disponibles</th>
+                      <th className="pb-3 font-extrabold text-center">Acciones Comerciales</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-black/5 font-semibold text-black/85">
+                    {clientes.map((c) => (
+                      <tr key={c.id} className="hover:bg-tienta-crema/20">
+                        <td className="py-3.5 text-black/70 text-xs font-mono">
+                          {new Date(c.created_at).toLocaleDateString('es-AR')}
+                        </td>
+                        <td className="py-3.5">
+                          <span className="font-bold block text-black text-sm">
+                            {c.nombre} {c.apellido}
+                          </span>
+                          <span className="text-xs text-black/60 block mt-0.5">DNI: {c.dni}</span>
+                        </td>
+                        <td className="py-3.5 text-xs">
+                          <div className="text-black">{c.email}</div>
+                          <div className="text-black/60 mt-0.5">{c.telefono || 'Sin teléfono'}</div>
+                        </td>
+                        <td className="py-3.5">
+                          <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold ${
+                            c.nivel === 'Standard' 
+                              ? 'bg-black/5 text-black/75 border border-black/10' 
+                              : c.nivel === 'Oro' 
+                                ? 'bg-tienta-gold/15 text-tienta-goldDark border border-tienta-gold/25' 
+                                : 'bg-tienta-teal/10 text-tienta-teal border border-tienta-teal/20'
+                          }`}>
+                            {c.nivel}
+                          </span>
+                        </td>
+                        <td className="py-3.5 text-right font-extrabold text-tienta-teal text-base">
+                          {c.puntos_actuales} <span className="text-[10px] font-bold text-black/65">pts</span>
+                        </td>
+                        <td className="py-3.5">
+                          <div className="flex justify-center items-center gap-2">
+                            {/* Correo mailto */}
+                            <a
+                              href={`mailto:${c.email}?subject=ClubTienta%20-%20Novedades%20y%20Beneficios&body=Hola%20${c.nombre},%20te%20escribimos%20desde%20el%20ClubTienta%20para%20agradecerte%20tu%20fidelidad...`}
+                              className="inline-flex items-center gap-1.5 bg-tienta-teal/5 text-tienta-teal hover:bg-tienta-teal hover:text-white border border-tienta-teal/15 px-3 py-1.5 rounded-full text-[10px] font-montserrat uppercase font-bold tracking-wider transition-all duration-300"
+                              title="Enviar Email"
+                            >
+                              <Mail size={11} /> Email
+                            </a>
+                            {/* WhatsApp wa.me */}
+                            {c.telefono ? (
+                              <a
+                                href={`https://wa.me/${c.telefono.replace(/\D/g, '').startsWith('54') ? '' : '54'}${c.telefono.replace(/\D/g, '')}?text=Hola%20${c.nombre},%20te%20escribimos%20del%20ClubTienta...`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 bg-green-50 text-green-700 hover:bg-green-600 hover:text-white border border-green-200 px-3 py-1.5 rounded-full text-[10px] font-montserrat uppercase font-bold tracking-wider transition-all duration-300"
+                                title="Enviar WhatsApp"
+                              >
+                                <MessageSquare size={11} /> WhatsApp
+                              </a>
+                            ) : (
+                              <span className="text-[10px] text-black/35 font-bold italic py-1.5 px-3">Sin WhatsApp</span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Paginación */}
+              {crmTotalFilas > itemsPorPagina && (
+                <div className="flex items-center justify-between border-t border-black/5 pt-6 mt-6">
+                  <span className="text-xs text-black/60 font-semibold font-lato">
+                    Mostrando del {crmPagina * itemsPorPagina + 1} al {Math.min((crmPagina + 1) * itemsPorPagina, crmTotalFilas)} de {crmTotalFilas} socios
+                  </span>
+                  
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setCrmPagina(p => Math.max(0, p - 1))}
+                      disabled={crmPagina === 0}
+                      className="p-2 rounded-full border border-black/10 hover:bg-black/5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors duration-200"
+                      title="Página Anterior"
+                    >
+                      <ChevronLeft size={16} />
+                    </button>
+                    <span className="text-sm font-bold font-montserrat text-tienta-teal px-2">
+                      {crmPagina + 1}
+                    </span>
+                    <button
+                      onClick={() => setCrmPagina(p => ((p + 1) * itemsPorPagina < crmTotalFilas ? p + 1 : p))}
+                      disabled={(crmPagina + 1) * itemsPorPagina >= crmTotalFilas}
+                      className="p-2 rounded-full border border-black/10 hover:bg-black/5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors duration-200"
+                      title="Página Siguiente"
+                    >
+                      <ChevronRight size={16} />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

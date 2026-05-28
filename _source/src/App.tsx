@@ -7,6 +7,7 @@ import Registro from './pages/Registro'
 import Caja from './pages/Caja'
 import Admin from './pages/Admin'
 import Dashboard from './pages/Dashboard'
+import Movimientos from './pages/Movimientos'
 import { RefreshCw } from 'lucide-react'
 
 // Componente para proteger rutas según Autenticación y Rol
@@ -101,6 +102,15 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['client']}>
                   <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/movimientos"
+              element={
+                <ProtectedRoute allowedRoles={['client']}>
+                  <Movimientos />
                 </ProtectedRoute>
               }
             />

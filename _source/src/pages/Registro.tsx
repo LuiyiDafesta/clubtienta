@@ -1,10 +1,15 @@
 import React, { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { User, Mail, Lock, Phone, CreditCard, ArrowRight, ArrowLeft } from 'lucide-react'
 
 export default function Registro() {
   const navigate = useNavigate()
+  const location = useLocation()
+  
+  // Parse query DNI ref
+  const params = new URLSearchParams(location.search)
+  const queryRef = params.get('ref') || ''
   
   // Estados del Formulario
   const [nombre, setNombre] = useState('')
@@ -13,6 +18,7 @@ export default function Registro() {
   const [dni, setDni] = useState('')
   const [telefono, setTelefono] = useState('')
   const [password, setPassword] = useState('')
+  const [referidoDni, setReferidoDni] = useState(queryRef)
   
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -61,7 +67,7 @@ export default function Registro() {
 
       if (authData?.user) {
         // 3. REGISTRO EN LA TABLA profiles
-        // Le asignamos 50 puntos de regalo por haberse registrado en el Club
+        // Los puntos iniciales empiezan en 0 ya que se acreditarán por el Stored Procedure
         const { error: profileError } = await supabase
           .from('profiles')
           .insert({
@@ -71,17 +77,56 @@ export default function Registro() {
             apellido,
             telefono,
             email,
-            puntos_actuales: 50, // 50 puntos de regalo iniciales
+            puntos_actuales: 0,
             nivel: 'Standard'
           })
 
         if (profileError) {
-          // Si falla al insertar el perfil (por ejemplo por email duplicado no detectado antes)
           console.error(profileError)
           throw new Error('Hubo un error al registrar tus datos de perfil: ' + profileError.message)
         }
 
-        setSuccessMsg('¡Registro exitoso! Sumaste tus primeros 50 puntos de regalo. Redirigiendo...')
+        // 4. LLAMAR AL RPC PARA PROCESAR PUNTOS DE BIENVENIDA Y REFERIDO
+        const cleanReferidoDni = referidoDni.replace(/\D/g, '')
+        const { error: rpcError } = await supabase.rpc('procesar_registro_referido', {
+          p_cliente_id: authData.user.id,
+          p_dni_referido: cleanReferidoDni || null
+        })
+
+        if (rpcError) {
+          console.error('Error al procesar referido:', rpcError)
+        }
+
+        // 5. DISPARAR WEBHOOK SI ESTÁ CONFIGURADO
+        try {
+          const { data: webhookConfig } = await supabase
+            .from('configuraciones')
+            .select('valor')
+            .eq('clave', 'webhook_n8n')
+            .maybeSingle()
+
+          if (webhookConfig && webhookConfig.valor) {
+            fetch(webhookConfig.valor, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                evento: 'registro_cliente',
+                id: authData.user.id,
+                dni: cleanDni,
+                nombre,
+                apellido,
+                telefono,
+                email,
+                referido_por_dni: cleanReferidoDni || null,
+                timestamp: new Date().toISOString()
+              })
+            }).catch(e => console.error('Error enviando webhook CRM:', e))
+          }
+        } catch (webhookErr) {
+          console.error('Error al procesar webhook config:', webhookErr)
+        }
+
+        setSuccessMsg('¡Registro exitoso! Sumaste tus puntos de bienvenida de regalo. Redirigiendo...')
         
         // Loguear e ir al Dashboard en 2 segundos
         setTimeout(() => {
@@ -238,6 +283,25 @@ export default function Registro() {
                     className="input-tienta pl-11 py-2.5 text-black font-semibold text-sm"
                   />
                 </div>
+              </div>
+            </div>
+
+            {/* DNI de quien te recomendó */}
+            <div>
+              <label className="block text-xs font-montserrat uppercase tracking-wider font-extrabold text-tienta-teal mb-2">
+                DNI de quien te recomendó (Opcional)
+              </label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-black/50">
+                  <CreditCard size={14} />
+                </span>
+                <input
+                  type="text"
+                  placeholder="DNI de tu amigo referente"
+                  value={referidoDni}
+                  onChange={(e) => setReferidoDni(e.target.value)}
+                  className="input-tienta pl-11 py-2.5 text-black font-semibold text-sm"
+                />
               </div>
             </div>
 

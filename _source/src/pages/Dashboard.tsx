@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useNavigate } from 'react-router-dom'
-import { Gift, QrCode, RefreshCw, Activity, Percent } from 'lucide-react'
+import { Gift, QrCode, RefreshCw, Activity, Percent, Share2, Copy } from 'lucide-react'
 
 // Interfaces
 interface Cliente {
@@ -53,6 +53,15 @@ export default function Dashboard() {
   
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  const handleCopyLink = () => {
+    if (!cliente) return
+    const inviteText = `¡Sumate al ClubTienta! Registrate gratis usando mi DNI ${cliente.dni} como referido y sumá tus primeros puntos de regalo para canjear por helados en Tienta: ${window.location.origin}/registro?ref=${cliente.dni}`
+    navigator.clipboard.writeText(inviteText)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   useEffect(() => {
     fetchSocioData()
@@ -248,6 +257,41 @@ export default function Dashboard() {
                 <p className="text-xs text-black/75 mt-1 leading-relaxed font-semibold">Tenés puntos acumulados suficientes para canjear absolutamente cualquier premio del catálogo actual.</p>
               </div>
             )}
+          </div>
+
+          {/* Recomendar Amigos Card */}
+          <div className="bg-white border border-black/5 rounded-3xl p-6 shadow-sm text-left relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-tienta-gold/5 blur-xl"></div>
+            
+            <h3 className="font-montserrat font-extrabold text-sm tracking-wider text-tienta-teal uppercase mb-3 flex items-center gap-2">
+              <Share2 size={15} className="text-tienta-goldDark" /> Recomendar Amigos 🍦
+            </h3>
+            
+            <p className="text-xs text-black/75 leading-relaxed font-semibold mb-4">
+              Invitá a tus amigos a asociarse al Club. Ingresando tu DNI como referido al registrarse, **¡ambos reciben puntos de regalo!**
+            </p>
+            
+            <div className="bg-tienta-crema/40 border border-tienta-gold/25 rounded-2xl p-4 mb-4 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] uppercase font-montserrat font-bold tracking-wider text-black/50 block mb-1">
+                  Tu Código de Referido (DNI)
+                </span>
+                <span className="text-lg font-montserrat font-extrabold text-tienta-teal tracking-wide">
+                  {cliente.dni}
+                </span>
+              </div>
+              <div className="bg-tienta-gold text-white font-montserrat text-[10px] uppercase font-bold tracking-wider px-2.5 py-1 rounded-full shadow-sm">
+                Activo
+              </div>
+            </div>
+            
+            <button
+              onClick={handleCopyLink}
+              className="w-full flex items-center justify-center gap-2 bg-tienta-teal text-white hover:bg-tienta-teal/90 py-2.5 rounded-xl text-xs font-montserrat uppercase tracking-wider font-extrabold transition-all duration-300 shadow-sm active:scale-95 cursor-pointer"
+            >
+              <Copy size={13} />
+              <span>{copied ? '¡Enlace Copiado!' : 'Copiar Enlace de Invitación'}</span>
+            </button>
           </div>
 
           {/* Historial Reciente de Mis Puntos */}

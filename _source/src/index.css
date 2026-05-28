@@ -1,0 +1,76 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&family=Inter:wght@100..900&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  --color-tienta-gold: #caa870;      /* Dorado Arena oficial de Tienta */
+  --color-tienta-goldDark: #b59469;  /* Dorado para textos legibles */
+  --color-tienta-teal: #026163;      /* Verde azulado oficial de Tienta */
+  --color-tienta-tealDark: #01494a;  /* Verde azulado oscuro para hovers */
+  --color-tienta-crema: #FAF8F5;     /* Fondo crema de Tienta */
+  --color-tienta-hueso: #FDFDFD;     /* Blanco hueso */
+  --color-tienta-carbon: #1C1C1C;    /* Texto oscuro elegante */
+  
+  --font-montserrat: "Montserrat", sans-serif;
+  --font-lato: "Lato", sans-serif;
+  --font-inter: "Inter", sans-serif;
+}
+
+@utility btn-capsule {
+  border-radius: 9999px;
+  padding: 0.625rem 1.5rem;
+  font-family: var(--font-montserrat);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition-property: all;
+  transition-duration: 300ms;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+@utility btn-tienta-gold {
+  @apply btn-capsule bg-tienta-gold text-white hover:bg-tienta-teal active:scale-95 shadow-sm hover:shadow-md;
+}
+
+@utility btn-tienta-teal {
+  @apply btn-capsule bg-tienta-teal text-white hover:bg-tienta-tealDark active:scale-95 shadow-sm hover:shadow-md;
+}
+
+@utility btn-tienta-outline {
+  @apply btn-capsule border border-tienta-gold text-tienta-goldDark hover:bg-tienta-gold hover:text-white active:scale-95;
+}
+
+@utility card-tienta {
+  @apply bg-tienta-hueso border border-black/5 rounded-2xl p-6 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_-6px_rgba(0,0,0,0.06)] hover:scale-[1.005] transition-all duration-300;
+}
+
+@utility input-tienta {
+  @apply w-full rounded-full border border-black/10 bg-white px-5 py-3 text-sm focus:border-tienta-gold focus:outline-none focus:ring-1 focus:ring-tienta-gold transition-all duration-300 placeholder:text-black/30;
+}
+
+body {
+  @apply bg-tienta-crema text-tienta-carbon font-lato antialiased;
+  background-color: #FAF8F5; /* Forzar el color de fondo crema de Tienta */
+}
+
+h1, h2, h3, h4, h5, h6 {
+  @apply font-montserrat font-bold tracking-wider;
+}
+
+/* Transiciones sutiles para scroll y inputs */
+::selection {
+  background-color: rgba(202, 168, 112, 0.3);
+  color: #026163;
+}
+
+/* Animación pulse dorada muy sutil */
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 10px rgba(202, 168, 112, 0.2); }
+  50% { box-shadow: 0 0 20px rgba(202, 168, 112, 0.4); }
+}
+
+.glow-gold {
+  animation: glow 3s infinite;
+}

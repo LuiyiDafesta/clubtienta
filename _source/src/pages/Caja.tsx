@@ -22,6 +22,7 @@ interface Premio {
   imagen_url: string
   stock: number
   activo: boolean
+  niveles_aplicables?: string[]
 }
 
 interface Transaccion {
@@ -71,6 +72,15 @@ export default function Caja() {
 
   // Rol del operador logueado
   const [userRole, setUserRole] = useState<string | null>(null)
+
+  // Estadísticas del Cajero ("Mi Turno")
+  const [cajeroStats, setCajeroStats] = useState({
+    totalVentas: 0,
+    totalPuntos: 0,
+    totalCanjes: 0
+  })
+  const [cajeroRecentTx, setCajeroRecentTx] = useState<any[]>([])
+  const [loadingCajeroStats, setLoadingCajeroStats] = useState(false)
 
   // Sistema de Notificaciones Premium (Modal y Toasts)
   const [toast, setToast] = useState<{ mostrar: boolean; mensaje: string; tipo: 'success' | 'error' | 'info' }>({
@@ -128,12 +138,67 @@ export default function Caja() {
     fetchPremios()
     fetchConfiguracion()
     checkUserRole()
+    fetchCajeroTurno()
   }, [])
 
   const checkUserRole = async () => {
     const { data: { session } } = await supabase.auth.getSession()
     if (session?.user) {
       setUserRole(session.user.app_metadata?.role || 'client')
+    }
+  }
+
+  const fetchCajeroTurno = async () => {
+    setLoadingCajeroStats(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user) return
+
+      const userId = session.user.id
+      const hoy = new Date()
+      // Principio del día de hoy en hora local
+      const startOfToday = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()).toISOString()
+
+      const { data: txs, error } = await supabase
+        .from('transacciones')
+        .select(`
+          id, tipo, importe, puntos, ticket_factura, detalle, created_at,
+          cliente:profiles!cliente_id(nombre, apellido, dni)
+        `)
+        .eq('creado_por', userId)
+        .gte('created_at', startOfToday)
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+
+      if (txs) {
+        let totalVentas = 0
+        let totalPuntos = 0
+        let totalCanjes = 0
+
+        txs.forEach(tx => {
+          if (tx.tipo === 'carga_compra') {
+            totalVentas += Number(tx.importe) || 0
+          }
+          if (tx.puntos > 0) {
+            totalPuntos += tx.puntos
+          }
+          if (tx.tipo === 'canje_premio') {
+            totalCanjes += 1
+          }
+        })
+
+        setCajeroStats({
+          totalVentas,
+          totalPuntos,
+          totalCanjes
+        })
+        setCajeroRecentTx(txs)
+      }
+    } catch (err) {
+      console.error('Error fetching cashier shift stats:', err)
+    } finally {
+      setLoadingCajeroStats(false)
     }
   }
 
@@ -273,6 +338,7 @@ export default function Caja() {
       
       // Recargar datos actualizados del cliente
       await recargarCliente()
+      await fetchCajeroTurno()
 
       setTimeout(() => setSuccessCompra(false), 3000)
 
@@ -320,6 +386,7 @@ export default function Caja() {
       setDetalleManual('')
       
       await recargarCliente()
+      await fetchCajeroTurno()
 
       setTimeout(() => setSuccessManual(false), 3000)
 
@@ -358,6 +425,7 @@ export default function Caja() {
 
           mostrarToast(`¡Premio canjeado con éxito! Entregá: ${premio.nombre}`, 'success')
           await recargarCliente()
+          await fetchCajeroTurno()
 
         } catch (err: any) {
           console.error(err)
@@ -608,15 +676,25 @@ export default function Caja() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {premios.map((premio) => {
                     const noAlcanza = cliente.puntos_actuales < premio.puntos_requeridos
+                    const isExcluded = premio.niveles_aplicables && premio.niveles_aplicables.length > 0 && !premio.niveles_aplicables.includes(cliente.nivel)
+                    const disabledButton = noAlcanza || isExcluded
+                    
                     return (
                       <div 
                         key={premio.id} 
-                        className={`border rounded-2xl p-4 flex flex-col justify-between transition-all duration-300 ${
-                          noAlcanza 
-                            ? 'bg-black/[0.02] border-black/5 opacity-60' 
-                            : 'bg-white border-black/10 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.05)] hover:border-tienta-gold/30'
+                        className={`border rounded-2xl p-4 flex flex-col justify-between transition-all duration-300 relative overflow-hidden ${
+                          isExcluded
+                            ? 'bg-black/5 border-dashed border-black/15 opacity-50 filter grayscale pointer-events-none'
+                            : noAlcanza 
+                              ? 'bg-black/[0.02] border-black/5 opacity-60' 
+                              : 'bg-white border-black/10 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.05)] hover:border-tienta-gold/30'
                         }`}
                       >
+                        {isExcluded && (
+                          <div className="absolute top-2 right-2 bg-tienta-teal text-white font-montserrat text-[8px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded shadow-sm z-20">
+                            🔒 Exclusivo
+                          </div>
+                        )}
                         <div>
                           <div className="flex justify-between items-start mb-2">
                             <h4 className="font-montserrat font-bold text-xs uppercase tracking-wide text-tienta-teal">
@@ -626,21 +704,39 @@ export default function Caja() {
                               {premio.puntos_requeridos} pts
                             </span>
                           </div>
+
+                          {/* Foto del Premio si existe */}
+                          {premio.imagen_url && (
+                            <div className="w-full h-24 rounded-lg overflow-hidden border border-black/5 mb-3 bg-black/5">
+                              <img src={premio.imagen_url} alt={premio.nombre} className="w-full h-full object-cover" />
+                            </div>
+                          )}
+
                           <p className="text-[11px] text-black/80 font-lato leading-relaxed font-semibold mb-4">
                             {premio.descripcion || 'Sin descripción.'}
                           </p>
+
+                          {isExcluded && (
+                            <p className="text-[10px] text-tienta-teal font-montserrat uppercase font-extrabold mb-3 text-center tracking-wide leading-relaxed">
+                              💎 Exclusivo {premio.niveles_aplicables?.join(', ')}
+                            </p>
+                          )}
                         </div>
 
                         <button
                           onClick={() => handleCanjearPremio(premio)}
-                          disabled={noAlcanza}
+                          disabled={disabledButton}
                           className={`w-full py-2 rounded-full font-montserrat uppercase tracking-widest text-[9px] font-extrabold cursor-pointer transition-all duration-200 ${
-                            noAlcanza
+                            disabledButton
                               ? 'bg-black/5 text-black/40 cursor-not-allowed'
                               : 'bg-tienta-gold text-white hover:bg-tienta-teal shadow-sm active:scale-95'
                           }`}
                         >
-                          {noAlcanza ? 'Puntos Insuficientes' : 'Canjear Premio'}
+                          {isExcluded 
+                            ? 'Exclusivo Premium' 
+                            : noAlcanza 
+                              ? 'Puntos Insuficientes' 
+                              : 'Canjear Premio'}
                         </button>
                       </div>
                     )
@@ -722,14 +818,126 @@ export default function Caja() {
 
       {/* Si no hay búsqueda o está vacío */}
       {!cliente && !loadingSearch && (
-        <div className="bg-white/40 border border-dashed border-black/15 rounded-3xl py-24 text-center">
-          <IceCream className="mx-auto text-tienta-teal/30 mb-4" size={48} />
-          <h3 className="font-montserrat font-extrabold text-base tracking-wider text-tienta-teal/70 uppercase">
-            Ingresá el DNI del socio para operar en caja
-          </h3>
-          <p className="text-sm text-black/60 mt-2 max-w-sm mx-auto font-lato leading-relaxed font-medium">
-            Desde aquí podrás asignar puntos por consumos, realizar canjes de premios e ingresar ajustes de auditoría con seguridad.
-          </p>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Welcome search promo */}
+          <div className="lg:col-span-1 bg-white/40 border border-dashed border-black/15 rounded-3xl p-8 flex flex-col justify-center items-center text-center">
+            <IceCream className="text-tienta-teal/40 mb-4 animate-bounce" size={48} />
+            <h3 className="font-montserrat font-extrabold text-base tracking-wider text-tienta-teal/80 uppercase">
+              Club Tienta
+            </h3>
+            <p className="text-xs text-black/60 mt-3 max-w-xs font-semibold leading-relaxed">
+              Ingresá el DNI del socio en el buscador superior para cargar compras, canjear premios o realizar ajustes.
+            </p>
+          </div>
+
+          {/* Mi Turno de Hoy */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="bg-white border border-black/5 rounded-3xl p-6 sm:p-8 shadow-sm text-left">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-base font-montserrat font-extrabold tracking-wider text-tienta-teal uppercase flex items-center gap-2">
+                  🍦 Mi Turno de Hoy
+                </h3>
+                <button
+                  onClick={fetchCajeroTurno}
+                  className="flex items-center gap-1 text-[10px] text-tienta-goldDark font-bold hover:text-tienta-teal tracking-wider uppercase font-montserrat"
+                >
+                  <RefreshCw size={10} className={loadingCajeroStats ? 'animate-spin' : ''} /> Actualizar
+                </button>
+              </div>
+
+              {/* Stats Grid */}
+              <div className="grid grid-cols-3 gap-4 mb-6">
+                <div className="bg-tienta-crema/40 border border-tienta-gold/25 p-4 rounded-2xl text-center">
+                  <span className="text-[10px] uppercase font-montserrat font-bold tracking-wider text-black/50 block mb-1">
+                    Vendido ($)
+                  </span>
+                  <span className="text-lg sm:text-xl font-montserrat font-extrabold text-tienta-teal">
+                    ${cajeroStats.totalVentas.toLocaleString('es-AR')}
+                  </span>
+                </div>
+                <div className="bg-tienta-crema/40 border border-tienta-gold/25 p-4 rounded-2xl text-center">
+                  <span className="text-[10px] uppercase font-montserrat font-bold tracking-wider text-black/50 block mb-1">
+                    Puntos Asignados
+                  </span>
+                  <span className="text-lg sm:text-xl font-montserrat font-extrabold text-tienta-teal">
+                    +{cajeroStats.totalPuntos}
+                  </span>
+                </div>
+                <div className="bg-tienta-crema/40 border border-tienta-gold/25 p-4 rounded-2xl text-center">
+                  <span className="text-[10px] uppercase font-montserrat font-bold tracking-wider text-black/50 block mb-1">
+                    Canjes
+                  </span>
+                  <span className="text-lg sm:text-xl font-montserrat font-extrabold text-tienta-goldDark">
+                    {cajeroStats.totalCanjes}
+                  </span>
+                </div>
+              </div>
+
+              {/* Recent Actions by Cajero */}
+              <div className="border-t border-black/5 pt-6">
+                <h4 className="text-xs font-montserrat font-bold uppercase tracking-wider text-black/70 mb-4">
+                  Mis Operaciones de Hoy
+                </h4>
+                
+                {loadingCajeroStats ? (
+                  <p className="text-[11px] text-black/45 py-4 animate-pulse">Cargando mis transacciones...</p>
+                ) : cajeroRecentTx.length === 0 ? (
+                  <p className="text-[11px] text-black/45 py-4 italic">No registrás operaciones en el día de hoy.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs font-lato text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-black/5 text-black/60 font-montserrat uppercase text-[10px] tracking-wider">
+                          <th className="pb-2">Hora</th>
+                          <th className="pb-2">Socio</th>
+                          <th className="pb-2">Operación</th>
+                          <th className="pb-2 text-right">Importe</th>
+                          <th className="pb-2 text-right">Puntos</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-black/5 font-semibold text-black/80">
+                        {cajeroRecentTx.map((tx) => (
+                          <tr key={tx.id} className="hover:bg-tienta-crema/10">
+                            <td className="py-2.5 text-black/60 text-[11px]">
+                              {new Date(tx.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                            </td>
+                            <td className="py-2.5">
+                              {tx.cliente ? (
+                                <span className="block truncate max-w-[120px]">
+                                  {tx.cliente.nombre} {tx.cliente.apellido}
+                                </span>
+                              ) : (
+                                <span className="italic text-black/40">-</span>
+                              )}
+                            </td>
+                            <td className="py-2.5">
+                              <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${
+                                tx.tipo === 'carga_compra' 
+                                  ? 'bg-green-50 text-green-700' 
+                                  : tx.tipo === 'carga_manual' 
+                                    ? 'bg-yellow-50 text-yellow-700' 
+                                    : 'bg-red-50 text-red-700'
+                              }`}>
+                                {tx.tipo === 'carga_compra' ? 'Compra' : tx.tipo === 'carga_manual' ? 'Manual' : 'Canje'}
+                              </span>
+                            </td>
+                            <td className="py-2.5 text-right text-black/75">
+                              {tx.importe ? `$${Number(tx.importe).toLocaleString('es-AR')}` : '-'}
+                            </td>
+                            <td className={`py-2.5 text-right font-bold ${
+                              tx.puntos > 0 ? 'text-green-600' : 'text-red-500'
+                            }`}>
+                              {tx.puntos > 0 ? `+${tx.puntos}` : tx.puntos}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

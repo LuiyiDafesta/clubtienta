@@ -23,6 +23,7 @@ interface Premio {
   imagen_url: string
   stock: number
   activo: boolean
+  niveles_aplicables?: string[]
 }
 
 interface Promocion {
@@ -388,53 +389,82 @@ export default function Dashboard() {
               {premios.map((premio) => {
                 const alcanzado = cliente.puntos_actuales >= premio.puntos_requeridos
                 const porcentajePremio = Math.min(100, Math.floor((cliente.puntos_actuales / premio.puntos_requeridos) * 100))
+                const isExcluded = premio.niveles_aplicables && premio.niveles_aplicables.length > 0 && !premio.niveles_aplicables.includes(cliente.nivel)
                 
                 return (
                   <div 
                     key={premio.id} 
-                    className={`border rounded-2xl p-4 flex flex-col justify-between transition-all duration-300 ${
-                      alcanzado 
-                        ? 'border-tienta-gold bg-tienta-gold/5 shadow-[0_2px_15px_rgba(202,168,112,0.08)]' 
-                        : 'border-black/10 bg-white shadow-[0_2px_10px_rgba(0,0,0,0.01)] hover:border-black/25'
+                    className={`border rounded-3xl overflow-hidden flex flex-col justify-between transition-all duration-300 ${
+                      isExcluded
+                        ? 'opacity-55 filter grayscale-[40%] bg-black/5 border-dashed border-black/15 pointer-events-none'
+                        : alcanzado 
+                          ? 'border-tienta-gold bg-tienta-gold/5 shadow-[0_2px_15px_rgba(202,168,112,0.08)] animate-pulse-subtle' 
+                          : 'border-black/10 bg-white shadow-[0_2px_10px_rgba(0,0,0,0.01)] hover:border-black/25'
                     }`}
                   >
-                    <div>
-                      <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-montserrat font-bold text-sm uppercase tracking-wide text-tienta-teal">
-                          {premio.nombre}
-                        </h4>
-                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-montserrat uppercase tracking-wider font-extrabold ${
-                          alcanzado 
-                            ? 'bg-tienta-gold text-white shadow-sm border border-tienta-gold' 
-                            : 'bg-tienta-crema text-tienta-goldDark border border-tienta-gold/20'
-                        }`}>
-                          {premio.puntos_requeridos} pts
-                        </span>
+                    {/* Foto de portada del premio si existe */}
+                    {premio.imagen_url && (
+                      <div className="w-full h-40 bg-black/5 relative overflow-hidden border-b border-black/5 shrink-0">
+                        <img 
+                          src={premio.imagen_url} 
+                          alt={premio.nombre} 
+                          className="w-full h-full object-cover transition-transform duration-500 hover:scale-105" 
+                        />
+                        {isExcluded && (
+                          <div className="absolute inset-0 bg-black/35 backdrop-blur-xs flex items-center justify-center">
+                            <span className="text-[10px] font-montserrat font-extrabold uppercase tracking-widest text-white bg-tienta-teal px-3 py-1 rounded-full shadow">
+                              🔒 Exclusivo Platinum
+                            </span>
+                          </div>
+                        )}
                       </div>
-                      <p className="text-xs text-black/85 font-lato leading-relaxed mb-4 font-semibold">
-                        {premio.descripcion || 'Sin descripción disponible.'}
-                      </p>
-                    </div>
+                    )}
 
-                    <div className="mt-4 pt-3 border-t border-black/5">
-                      {alcanzado ? (
-                        <div className="flex items-center gap-1.5 text-tienta-goldDark font-extrabold uppercase tracking-wider text-xs font-montserrat">
-                          <span>✓ ¡Elegible para Canjear en Caja!</span>
+                    <div className="p-5 flex-1 flex flex-col justify-between">
+                      <div>
+                        <div className="flex justify-between items-start gap-3 mb-2">
+                          <h4 className="font-montserrat font-bold text-sm uppercase tracking-wide text-tienta-teal">
+                            {premio.nombre}
+                          </h4>
+                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-montserrat uppercase tracking-wider font-extrabold shrink-0 ${
+                            isExcluded
+                              ? 'bg-black/10 text-black/50'
+                              : alcanzado 
+                                ? 'bg-tienta-gold text-white shadow-sm border border-tienta-gold' 
+                                : 'bg-tienta-crema text-tienta-goldDark border border-tienta-gold/20'
+                          }`}>
+                            {premio.puntos_requeridos} pts
+                          </span>
                         </div>
-                      ) : (
-                        <div className="space-y-1.5">
-                          <div className="w-full bg-tienta-crema rounded-full h-1 border border-black/5 overflow-hidden">
-                            <div 
-                              className="bg-tienta-teal/40 h-full rounded-full transition-all" 
-                              style={{ width: `${porcentajePremio}%` }}
-                            ></div>
+                        <p className="text-xs text-black/80 font-lato leading-relaxed mb-4 font-semibold">
+                          {premio.descripcion || 'Sin descripción disponible.'}
+                        </p>
+                      </div>
+
+                      <div className="mt-4 pt-3 border-t border-black/5">
+                        {isExcluded ? (
+                          <div className="text-[10px] text-tienta-teal font-montserrat font-extrabold uppercase tracking-wide leading-relaxed text-center py-1 bg-tienta-teal/5 rounded-xl border border-tienta-teal/10 px-2">
+                            🔒 Exclusivo para socios Platinum. ¡Seguí acumulando compras para alcanzar este beneficio!
                           </div>
-                          <div className="flex justify-between text-[10px] text-black/65 font-bold tracking-wider font-montserrat">
-                            <span>Estás al {porcentajePremio}% de conseguirlo</span>
-                            <span>Faltan {premio.puntos_requeridos - cliente.puntos_actuales} pts</span>
+                        ) : alcanzado ? (
+                          <div className="flex items-center gap-1.5 text-tienta-goldDark font-extrabold uppercase tracking-wider text-xs font-montserrat">
+                            <span>✓ ¡Elegible para Canjear en Caja!</span>
                           </div>
-                        </div>
-                      )}
+                        ) : (
+                          <div className="space-y-1.5">
+                            <div className="w-full bg-tienta-crema rounded-full h-1 border border-black/5 overflow-hidden">
+                              <div 
+                                className="bg-tienta-teal/40 h-full rounded-full transition-all" 
+                                style={{ width: `${porcentajePremio}%` }}
+                              ></div>
+                            </div>
+                            <div className="flex justify-between text-[10px] text-black/65 font-bold tracking-wider font-montserrat">
+                              <span>Estás al {porcentajePremio}% de conseguirlo</span>
+                              <span>Faltan {premio.puntos_requeridos - cliente.puntos_actuales} pts</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )

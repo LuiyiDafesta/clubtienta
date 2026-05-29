@@ -78,23 +78,25 @@ export default function Navbar() {
                 >
                   <Award size={16} /> Línea de Caja
                 </button>
-                <button
-                  onClick={() => navigate('/crm')}
-                  className={`font-montserrat text-sm tracking-widest font-extrabold uppercase hover:text-tienta-goldLight transition-colors duration-200 py-2 flex items-center gap-2 ${
-                    location.pathname === '/crm' ? 'text-tienta-goldLight border-b-2 border-tienta-goldLight' : 'text-white/80'
-                  }`}
-                >
-                  <Layers size={16} /> Clientes (CRM)
-                </button>
                 {userRole === 'admin' && (
-                  <button
-                    onClick={() => navigate('/admin')}
-                    className={`font-montserrat text-sm tracking-widest font-extrabold uppercase hover:text-tienta-goldLight transition-colors duration-200 py-2 flex items-center gap-2 ${
-                      location.pathname === '/admin' ? 'text-tienta-goldLight border-b-2 border-tienta-goldLight' : 'text-white/80'
-                    }`}
-                  >
-                    <ClipboardList size={16} /> Panel Administrador
-                  </button>
+                  <>
+                    <button
+                      onClick={() => navigate('/crm')}
+                      className={`font-montserrat text-sm tracking-widest font-extrabold uppercase hover:text-tienta-goldLight transition-colors duration-200 py-2 flex items-center gap-2 ${
+                        location.pathname === '/crm' ? 'text-tienta-goldLight border-b-2 border-tienta-goldLight' : 'text-white/80'
+                      }`}
+                    >
+                      <Layers size={16} /> Clientes (CRM)
+                    </button>
+                    <button
+                      onClick={() => navigate('/admin')}
+                      className={`font-montserrat text-sm tracking-widest font-extrabold uppercase hover:text-tienta-goldLight transition-colors duration-200 py-2 flex items-center gap-2 ${
+                        location.pathname === '/admin' ? 'text-tienta-goldLight border-b-2 border-tienta-goldLight' : 'text-white/80'
+                      }`}
+                    >
+                      <ClipboardList size={16} /> Panel Administrador
+                    </button>
+                  </>
                 )}
               </>
             )}

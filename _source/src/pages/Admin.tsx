@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { 
   Settings, Gift, Percent, ShieldCheck, Plus, Trash2, 
-  Calendar, RefreshCw, Layers, Edit
+  Calendar, RefreshCw, Layers, Edit, BarChart3
 } from 'lucide-react'
 
 // Interfaces
@@ -14,6 +14,7 @@ interface Premio {
   imagen_url: string
   stock: number
   activo: boolean
+  niveles_aplicables?: string[]
 }
 
 interface Promocion {
@@ -47,8 +48,58 @@ interface TransaccionAuditoria {
   } | null
 }
 
+const compressImage = (file: File, maxWidth = 800, maxHeight = 800, quality = 0.8): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.readAsDataURL(file)
+    reader.onload = (event) => {
+      const img = new Image()
+      img.src = event.target?.result as string
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        let width = img.width
+        let height = img.height
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width)
+            width = maxWidth
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height)
+            height = maxHeight
+          }
+        }
+
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')
+        if (!ctx) {
+          resolve(file)
+          return
+        }
+        ctx.drawImage(img, 0, 0, width, height)
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(blob)
+            } else {
+              resolve(file)
+            }
+          },
+          'image/jpeg',
+          quality
+        )
+      }
+      img.onerror = (err) => reject(err)
+    }
+    reader.onerror = (err) => reject(err)
+  })
+}
+
 export default function Admin() {
-  const [activeTab, setActiveTab] = useState<'config' | 'premios' | 'promos' | 'auditoria' | 'staff'>('config')
+  const [activeTab, setActiveTab] = useState<'config' | 'premios' | 'promos' | 'auditoria' | 'staff' | 'metricas'>('config')
 
   // --- CONFIGURACIÓN ESTADOS ---
   const [valorPunto, setValorPunto] = useState('200')
@@ -88,9 +139,10 @@ export default function Admin() {
   const [premios, setPremios] = useState<Premio[]>([])
   const [loadingPremios, setLoadingPremios] = useState(false)
   const [nuevoPremio, setNuevoPremio] = useState<Premio>({
-    nombre: '', descripcion: '', puntos_requeridos: 100, imagen_url: '', stock: -1, activo: true
+    nombre: '', descripcion: '', puntos_requeridos: 100, imagen_url: '', stock: -1, activo: true, niveles_aplicables: ['Gold', 'Platinum']
   })
   const [editingPremioId, setEditingPremioId] = useState<string | null>(null)
+  const [uploadingImage, setUploadingImage] = useState(false)
 
   // --- PROMOS ESTADOS ---
   const [promociones, setPromociones] = useState<Promocion[]>([])
@@ -107,6 +159,22 @@ export default function Admin() {
   const [filtroTipo, setFiltroTipo] = useState('')
   const [filtroTicket, setFiltroTicket] = useState('')
 
+  // --- METRICAS ESTADOS ---
+  interface CajeroMetrica {
+    id: string
+    nombre: string
+    apellido: string
+    email: string
+    rol: string
+    totalVentas: number
+    totalPuntos: number
+    totalCanjes: number
+    totalVentasHoy: number
+  }
+  const [metricasCajeros, setMetricasCajeros] = useState<CajeroMetrica[]>([])
+  const [globalStats, setGlobalStats] = useState({ totalVentas: 0, totalPuntos: 0, totalCanjes: 0, totalVentasHoy: 0 })
+  const [loadingMetricas, setLoadingMetricas] = useState(false)
+
   const diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
   const nivelesClub = ['Gold', 'Platinum']
 
@@ -120,8 +188,99 @@ export default function Admin() {
   useEffect(() => {
     if (activeTab === 'staff') {
       fetchStaff()
+    } else if (activeTab === 'metricas') {
+      fetchMetricas()
     }
   }, [activeTab])
+
+  const fetchMetricas = async () => {
+    setLoadingMetricas(true)
+    try {
+      const { data: staffData } = await supabase
+        .from('profiles')
+        .select('id, nombre, apellido, email, rol')
+        .in('rol', ['admin', 'cajero'])
+
+      const { data: txData } = await supabase
+        .from('transacciones')
+        .select('tipo, importe, puntos, creado_por, created_at')
+
+      if (staffData && txData) {
+        const hoy = new Date()
+        const startOfToday = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()).getTime()
+
+        let totalVentas = 0
+        let totalPuntos = 0
+        let totalCanjes = 0
+        let totalVentasHoy = 0
+
+        // Calcular globales
+        txData.forEach(tx => {
+          const txTime = new Date(tx.created_at).getTime()
+          const esHoy = txTime >= startOfToday
+
+          if (tx.tipo === 'carga_compra') {
+            const imp = Number(tx.importe) || 0
+            totalVentas += imp
+            if (esHoy) totalVentasHoy += imp
+          }
+          if (tx.puntos > 0) {
+            totalPuntos += tx.puntos
+          }
+          if (tx.tipo === 'canje_premio') {
+            totalCanjes += 1
+          }
+        })
+
+        setGlobalStats({ totalVentas, totalPuntos, totalCanjes, totalVentasHoy })
+
+        // Calcular por operador
+        const met: CajeroMetrica[] = staffData.map(m => {
+          let cVentas = 0
+          let cPuntos = 0
+          let cCanjes = 0
+          let cVentasHoy = 0
+
+          txData.forEach(tx => {
+            if (tx.creado_por === m.id) {
+              const txTime = new Date(tx.created_at).getTime()
+              const esHoy = txTime >= startOfToday
+
+              if (tx.tipo === 'carga_compra') {
+                const imp = Number(tx.importe) || 0
+                cVentas += imp
+                if (esHoy) cVentasHoy += imp
+              }
+              if (tx.puntos > 0) {
+                cPuntos += tx.puntos
+              }
+              if (tx.tipo === 'canje_premio') {
+                cCanjes += 1
+              }
+            }
+          })
+
+          return {
+            id: m.id,
+            nombre: m.nombre,
+            apellido: m.apellido,
+            email: m.email,
+            rol: m.rol,
+            totalVentas: cVentas,
+            totalPuntos: cPuntos,
+            totalCanjes: cCanjes,
+            totalVentasHoy: cVentasHoy
+          }
+        })
+
+        setMetricasCajeros(met)
+      }
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoadingMetricas(false)
+    }
+  }
 
   // --- 1. CONFIGURACIÓN LOGICA ---
   const fetchConfiguraciones = async () => {
@@ -212,7 +371,7 @@ export default function Admin() {
         if (error) throw error
       }
       
-      setNuevoPremio({ nombre: '', descripcion: '', puntos_requeridos: 100, imagen_url: '', stock: -1, activo: true })
+      setNuevoPremio({ nombre: '', descripcion: '', puntos_requeridos: 100, imagen_url: '', stock: -1, activo: true, niveles_aplicables: ['Gold', 'Platinum'] })
       fetchPremios()
     } catch (err: any) {
       alert(err.message)
@@ -227,13 +386,57 @@ export default function Admin() {
       puntos_requeridos: premio.puntos_requeridos,
       imagen_url: premio.imagen_url || '',
       stock: premio.stock,
-      activo: premio.activo
+      activo: premio.activo,
+      niveles_aplicables: premio.niveles_aplicables || ['Gold', 'Platinum']
     })
   }
 
   const handleCancelarEditarPremio = () => {
     setEditingPremioId(null)
-    setNuevoPremio({ nombre: '', descripcion: '', puntos_requeridos: 100, imagen_url: '', stock: -1, activo: true })
+    setNuevoPremio({ nombre: '', descripcion: '', puntos_requeridos: 100, imagen_url: '', stock: -1, activo: true, niveles_aplicables: ['Gold', 'Platinum'] })
+  }
+
+  const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploadingImage(true)
+    try {
+      const compressedBlob = await compressImage(file, 800, 800, 0.8)
+      const compressedFile = new File([compressedBlob], file.name, { type: 'image/jpeg' })
+
+      const fileExt = 'jpg'
+      const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`
+      
+      const { error } = await supabase.storage
+        .from('premios')
+        .upload(fileName, compressedFile, {
+          contentType: 'image/jpeg',
+          upsert: true
+        })
+
+      if (error) throw error
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('premios')
+        .getPublicUrl(fileName)
+
+      setNuevoPremio(prev => ({ ...prev, imagen_url: publicUrl }))
+    } catch (err: any) {
+      console.error(err)
+      alert('Error al subir imagen: ' + err.message)
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
+  const toggleNivelAplicablePremio = (nivel: string) => {
+    const current = nuevoPremio.niveles_aplicables || []
+    if (current.includes(nivel)) {
+      setNuevoPremio({ ...nuevoPremio, niveles_aplicables: current.filter(n => n !== nivel) })
+    } else {
+      setNuevoPremio({ ...nuevoPremio, niveles_aplicables: [...current, nivel] })
+    }
   }
 
   const handleEliminarPremio = async (id: string) => {
@@ -576,6 +779,14 @@ export default function Admin() {
         >
           <span className="flex items-center gap-2"><Layers size={16} /> Operadores y Staff</span>
         </button>
+        <button
+          onClick={() => setActiveTab('metricas')}
+          className={`pb-4 text-sm font-montserrat uppercase tracking-wider font-bold cursor-pointer transition-all shrink-0 ${
+            activeTab === 'metricas' ? 'border-b-2 border-tienta-gold text-tienta-teal' : 'text-black/60 hover:text-black/90'
+          }`}
+        >
+          <span className="flex items-center gap-2"><BarChart3 size={16} /> Estadísticas de Caja</span>
+        </button>
       </div>
 
       {/* TAB CONTENT: CONFIGURACIÓN */}
@@ -820,6 +1031,74 @@ export default function Admin() {
                 </div>
               </div>
 
+              <div>
+                <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
+                  Membresías que pueden canjearlo
+                </label>
+                <div className="flex items-center gap-6 mt-2 bg-tienta-crema/20 border border-black/5 p-3 rounded-2xl">
+                  <label className="flex items-center gap-2 text-xs font-semibold text-black/80 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={nuevoPremio.niveles_aplicables?.includes('Gold')}
+                      onChange={() => toggleNivelAplicablePremio('Gold')}
+                      className="rounded text-tienta-teal focus:ring-tienta-teal cursor-pointer"
+                    />
+                    <span>Gold 🏆</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-xs font-semibold text-black/80 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={nuevoPremio.niveles_aplicables?.includes('Platinum')}
+                      onChange={() => toggleNivelAplicablePremio('Platinum')}
+                      className="rounded text-tienta-teal focus:ring-tienta-teal cursor-pointer"
+                    />
+                    <span>Platinum 💎</span>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
+                  Foto del Premio (Catálogo) 🍦
+                </label>
+                <div className="mt-2 space-y-3">
+                  {nuevoPremio.imagen_url ? (
+                    <div className="relative w-full h-32 rounded-2xl overflow-hidden border border-black/10 bg-black/5 flex items-center justify-center">
+                      <img
+                        src={nuevoPremio.imagen_url}
+                        alt="Vista previa"
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setNuevoPremio({ ...nuevoPremio, imagen_url: '' })}
+                        className="absolute top-2 right-2 bg-red-600 text-white px-2.5 py-1 rounded-full shadow hover:bg-red-700 transition-colors cursor-pointer text-[9px] font-bold font-montserrat uppercase tracking-wider"
+                      >
+                        Quitar
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-black/15 rounded-2xl cursor-pointer bg-tienta-crema/20 hover:bg-tienta-crema/40 hover:border-tienta-gold/45 transition-all duration-300">
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
+                        <span className="text-tienta-goldDark font-extrabold text-[10px] font-montserrat uppercase tracking-wider block mb-1">
+                          {uploadingImage ? 'Comprimiendo y Subiendo...' : 'Seleccionar Foto'}
+                        </span>
+                        <span className="text-[9px] text-black/55 font-bold">
+                          JPG o PNG (Se optimizará a menos de 100KB)
+                        </span>
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        disabled={uploadingImage}
+                        onChange={handleUploadImage}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
+                </div>
+              </div>
+
               <div className="flex gap-2">
                 <button
                   type="submit"
@@ -861,12 +1140,15 @@ export default function Admin() {
                       <p className="text-xs text-black/70 font-lato leading-relaxed mt-1 max-w-lg font-medium">
                         {pr.descripcion || 'Sin descripción'}
                       </p>
-                      <div className="flex gap-4 mt-2.5">
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-2.5">
                         <span className="text-xs text-tienta-goldDark font-extrabold">
                           💰 {pr.puntos_requeridos} Puntos
                         </span>
                         <span className="text-xs text-black/55 font-bold">
                           📦 Stock: {pr.stock === -1 ? 'Ilimitado' : pr.stock}
+                        </span>
+                        <span className="text-[10px] bg-tienta-teal/5 text-tienta-teal border border-tienta-teal/15 px-2 py-0.5 rounded font-montserrat uppercase font-extrabold tracking-wider">
+                          🎯 {pr.niveles_aplicables?.join(', ') || 'Gold, Platinum'}
                         </span>
                       </div>
                     </div>
@@ -1451,6 +1733,149 @@ export default function Admin() {
             )}
           </div>
 
+        </div>
+      )}
+
+      {/* TAB CONTENT: ESTADÍSTICAS Y MÉTRICAS DE CAJA */}
+      {activeTab === 'metricas' && (
+        <div className="space-y-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <h2 className="text-lg font-montserrat font-bold tracking-wider text-tienta-teal uppercase flex items-center gap-2">
+              <BarChart3 size={18} /> Estadísticas y Rendimiento de Caja
+            </h2>
+            
+            <button
+              onClick={fetchMetricas}
+              className="flex items-center gap-1.5 text-xs text-tienta-goldDark font-semibold hover:text-tienta-teal tracking-wider uppercase font-montserrat cursor-pointer"
+            >
+              <RefreshCw size={12} className={loadingMetricas ? 'animate-spin' : ''} /> Actualizar Datos
+            </button>
+          </div>
+
+          {loadingMetricas ? (
+            <div className="flex justify-center items-center py-24 gap-2 text-black/60 text-sm font-semibold">
+              <RefreshCw size={18} className="animate-spin" /> Consolidando estadísticas del staff...
+            </div>
+          ) : (
+            <>
+              {/* Resumen Global Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                
+                {/* Venta Global */}
+                <div className="bg-tienta-teal text-white border border-white/5 rounded-3xl p-6 shadow-md relative overflow-hidden">
+                  <div className="absolute -bottom-10 -right-10 w-28 h-28 rounded-full bg-white/5 blur-xl"></div>
+                  <span className="text-[10px] font-montserrat uppercase tracking-[0.2em] text-tienta-gold font-extrabold">
+                    Ventas Totales
+                  </span>
+                  <span className="text-3xl font-montserrat font-extrabold block mt-2 tracking-tight">
+                    ${globalStats.totalVentas.toLocaleString('es-AR')}
+                  </span>
+                  <span className="text-[10px] text-white/70 block mt-2 font-bold uppercase tracking-wider font-montserrat">
+                    Monto Histórico Acumulado
+                  </span>
+                </div>
+
+                {/* Ventas de Hoy */}
+                <div className="bg-white border border-black/5 rounded-3xl p-6 shadow-sm relative overflow-hidden">
+                  <span className="text-[10px] font-montserrat uppercase tracking-[0.2em] text-tienta-teal font-extrabold">
+                    Ventas de Hoy 🍦
+                  </span>
+                  <span className="text-3xl font-montserrat font-extrabold block mt-2 tracking-tight text-tienta-goldDark">
+                    ${globalStats.totalVentasHoy.toLocaleString('es-AR')}
+                  </span>
+                  <span className="text-[10px] text-black/50 block mt-2 font-bold uppercase tracking-wider font-montserrat">
+                    Turno Diario en Curso
+                  </span>
+                </div>
+
+                {/* Puntos Otorgados */}
+                <div className="bg-white border border-black/5 rounded-3xl p-6 shadow-sm relative overflow-hidden">
+                  <span className="text-[10px] font-montserrat uppercase tracking-[0.2em] text-black/60 font-extrabold">
+                    Puntos Emitidos
+                  </span>
+                  <span className="text-3xl font-montserrat font-extrabold block mt-2 tracking-tight text-tienta-teal">
+                    +{globalStats.totalPuntos.toLocaleString('es-AR')}
+                  </span>
+                  <span className="text-[10px] text-black/50 block mt-2 font-bold uppercase tracking-wider font-montserrat">
+                    Fidelización Entregada
+                  </span>
+                </div>
+
+                {/* Canjes Totales */}
+                <div className="bg-white border border-black/5 rounded-3xl p-6 shadow-sm relative overflow-hidden">
+                  <span className="text-[10px] font-montserrat uppercase tracking-[0.2em] text-black/60 font-extrabold">
+                    Premios Canjeados
+                  </span>
+                  <span className="text-3xl font-montserrat font-extrabold block mt-2 tracking-tight text-tienta-goldDark">
+                    {globalStats.totalCanjes.toLocaleString('es-AR')}
+                  </span>
+                  <span className="text-[10px] text-black/50 block mt-2 font-bold uppercase tracking-wider font-montserrat">
+                    Helados y Premios Entregados
+                  </span>
+                </div>
+
+              </div>
+
+              {/* Comparativa de Operadores (Staff) */}
+              <div className="bg-white border border-black/5 rounded-3xl p-6 sm:p-8 shadow-sm text-left">
+                <h3 className="text-base font-montserrat font-extrabold tracking-wider text-tienta-teal uppercase mb-6">
+                  Rendimiento y Balance por Operador de Caja
+                </h3>
+
+                {metricasCajeros.length === 0 ? (
+                  <p className="text-sm text-black/50 py-16 text-center">No hay operadores registrados.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm font-lato text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-black/10 text-black/70 font-montserrat uppercase text-xs tracking-wider">
+                          <th className="pb-3 font-extrabold">Operador / Personal</th>
+                          <th className="pb-3 font-extrabold">Rol</th>
+                          <th className="pb-3 font-extrabold text-right">Venta Hoy</th>
+                          <th className="pb-3 font-extrabold text-right">Venta Histórica</th>
+                          <th className="pb-3 font-extrabold text-right">Puntos Cargados</th>
+                          <th className="pb-3 font-extrabold text-right">Canjes Realizados</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-black/5 font-semibold text-black/85">
+                        {metricasCajeros.map((m) => (
+                          <tr key={m.id} className="hover:bg-tienta-crema/20">
+                            <td className="py-4">
+                              <span className="font-bold text-black text-sm block">
+                                {m.nombre} {m.apellido}
+                              </span>
+                              <span className="text-[10px] text-black/50 font-mono block mt-0.5">{m.email}</span>
+                            </td>
+                            <td className="py-4">
+                              <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold ${
+                                m.rol === 'admin' 
+                                  ? 'bg-tienta-teal/15 text-tienta-teal border border-tienta-teal/20' 
+                                  : 'bg-tienta-gold/15 text-tienta-goldDark border border-tienta-gold/25'
+                              }`}>
+                                {m.rol === 'admin' ? 'Administrador' : 'Cajero / Operador'}
+                              </span>
+                            </td>
+                            <td className="py-4 text-right text-tienta-goldDark font-extrabold text-sm">
+                              ${m.totalVentasHoy.toLocaleString('es-AR')}
+                            </td>
+                            <td className="py-4 text-right text-black/70 font-bold">
+                              ${m.totalVentas.toLocaleString('es-AR')}
+                            </td>
+                            <td className="py-4 text-right text-green-600 font-bold text-sm">
+                              +{m.totalPuntos.toLocaleString('es-AR')}
+                            </td>
+                            <td className="py-4 text-right text-black/80 font-bold">
+                              {m.totalCanjes}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
       )}
 

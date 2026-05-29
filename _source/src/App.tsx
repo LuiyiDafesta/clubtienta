@@ -99,11 +99,11 @@ function App() {
               }
             />
 
-            {/* Rutas Protegidas - CRM Clientes (Admins y Cajeros) */}
+            {/* Rutas Protegidas - CRM Clientes (Solo Admins) */}
             <Route
               path="/crm"
               element={
-                <ProtectedRoute allowedRoles={['admin', 'cajero']}>
+                <ProtectedRoute allowedRoles={['admin']}>
                   <Crm />
                 </ProtectedRoute>
               }

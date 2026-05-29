@@ -403,64 +403,6 @@ export default function Caja() {
               </div>
             </div>
 
-            {/* Catálogo de Premios y Canjes */}
-            <div className="bg-white border border-black/5 rounded-3xl p-6 shadow-sm text-left">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-2">
-                  <Gift className="text-tienta-teal" size={18} />
-                  <h3 className="text-sm font-montserrat font-extrabold tracking-wider text-tienta-teal uppercase">
-                    Canje de Premios
-                  </h3>
-                </div>
-              </div>
-
-              {premios.length === 0 ? (
-                <p className="text-xs text-black/50 py-6 text-center font-medium">No hay premios cargados.</p>
-              ) : (
-                <div className="grid grid-cols-1 gap-4">
-                  {premios.map((premio) => {
-                    const noAlcanza = cliente.puntos_actuales < premio.puntos_requeridos
-                    return (
-                      <div 
-                        key={premio.id} 
-                        className={`border rounded-2xl p-4 flex flex-col justify-between transition-all duration-300 ${
-                          noAlcanza 
-                            ? 'bg-black/[0.02] border-black/5 opacity-60' 
-                            : 'bg-white border-black/10 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.05)] hover:border-tienta-gold/30'
-                        }`}
-                      >
-                        <div>
-                          <div className="flex justify-between items-start mb-2">
-                            <h4 className="font-montserrat font-bold text-xs uppercase tracking-wide text-tienta-teal">
-                              {premio.nombre}
-                            </h4>
-                            <span className="bg-tienta-crema text-tienta-goldDark px-2 py-0.5 rounded-full text-[10px] font-montserrat uppercase tracking-wider font-extrabold border border-tienta-gold/20 shrink-0">
-                              {premio.puntos_requeridos} pts
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-black/80 font-lato leading-relaxed font-semibold mb-4">
-                            {premio.descripcion || 'Sin descripción.'}
-                          </p>
-                        </div>
-
-                        <button
-                          onClick={() => handleCanjearPremio(premio)}
-                          disabled={noAlcanza}
-                          className={`w-full py-2 rounded-full font-montserrat uppercase tracking-widest text-[9px] font-extrabold cursor-pointer transition-all duration-200 ${
-                            noAlcanza
-                              ? 'bg-black/5 text-black/40 cursor-not-allowed'
-                              : 'bg-tienta-gold text-white hover:bg-tienta-teal shadow-sm active:scale-95'
-                          }`}
-                        >
-                          {noAlcanza ? 'Puntos Insuficientes' : 'Canjear Premio'}
-                        </button>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-
           </div>
 
           {/* Columna Derecha: Carga de Puntos (Compra y Manual) e Historial */}
@@ -585,6 +527,64 @@ export default function Caja() {
                 </form>
               </div>
             )}
+
+            {/* Catálogo de Premios y Canjes (En horizontal, arriba de los últimos movimientos) */}
+            <div className="bg-white border border-black/5 rounded-3xl p-6 sm:p-8 shadow-sm text-left">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                  <Gift className="text-tienta-teal" size={18} />
+                  <h3 className="text-sm font-montserrat font-extrabold tracking-wider text-tienta-teal uppercase">
+                    Canje de Premios
+                  </h3>
+                </div>
+              </div>
+
+              {premios.length === 0 ? (
+                <p className="text-xs text-black/50 py-6 text-center font-medium">No hay premios cargados.</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {premios.map((premio) => {
+                    const noAlcanza = cliente.puntos_actuales < premio.puntos_requeridos
+                    return (
+                      <div 
+                        key={premio.id} 
+                        className={`border rounded-2xl p-4 flex flex-col justify-between transition-all duration-300 ${
+                          noAlcanza 
+                            ? 'bg-black/[0.02] border-black/5 opacity-60' 
+                            : 'bg-white border-black/10 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.05)] hover:border-tienta-gold/30'
+                        }`}
+                      >
+                        <div>
+                          <div className="flex justify-between items-start mb-2">
+                            <h4 className="font-montserrat font-bold text-xs uppercase tracking-wide text-tienta-teal">
+                              {premio.nombre}
+                            </h4>
+                            <span className="bg-tienta-crema text-tienta-goldDark px-2 py-0.5 rounded-full text-[10px] font-montserrat uppercase tracking-wider font-extrabold border border-tienta-gold/20 shrink-0">
+                              {premio.puntos_requeridos} pts
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-black/80 font-lato leading-relaxed font-semibold mb-4">
+                            {premio.descripcion || 'Sin descripción.'}
+                          </p>
+                        </div>
+
+                        <button
+                          onClick={() => handleCanjearPremio(premio)}
+                          disabled={noAlcanza}
+                          className={`w-full py-2 rounded-full font-montserrat uppercase tracking-widest text-[9px] font-extrabold cursor-pointer transition-all duration-200 ${
+                            noAlcanza
+                              ? 'bg-black/5 text-black/40 cursor-not-allowed'
+                              : 'bg-tienta-gold text-white hover:bg-tienta-teal shadow-sm active:scale-95'
+                          }`}
+                        >
+                          {noAlcanza ? 'Puntos Insuficientes' : 'Canjear Premio'}
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
 
             {/* Historial Reciente de Operaciones */}
             <div className="bg-white border border-black/5 rounded-3xl p-6 sm:p-8 shadow-sm text-left">

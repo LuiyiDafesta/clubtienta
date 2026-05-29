@@ -15,6 +15,7 @@ interface ClienteCRM {
   nivel: string
   puntos_actuales: number
   created_at: string
+  fecha_nacimiento?: string | null
 }
 
 export default function Crm() {
@@ -176,6 +177,11 @@ export default function Crm() {
                           {c.nombre} {c.apellido}
                         </span>
                         <span className="text-xs text-black/60 block mt-0.5 font-mono">DNI: {c.dni}</span>
+                        {c.fecha_nacimiento && (
+                          <span className="text-[10px] text-tienta-goldDark block mt-0.5 font-bold">
+                            🎂 Cumple: {new Date(c.fecha_nacimiento + 'T00:00:00').toLocaleDateString('es-AR', { day: 'numeric', month: 'long' })}
+                          </span>
+                        )}
                       </td>
                       <td className="py-4 px-6 text-xs">
                         <div className="text-black">{c.email}</div>

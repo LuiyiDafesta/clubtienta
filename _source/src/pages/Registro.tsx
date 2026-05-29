@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { User, Mail, Lock, Phone, CreditCard, ArrowRight, ArrowLeft } from 'lucide-react'
+import { User, Mail, Lock, Phone, CreditCard, ArrowRight, ArrowLeft, Calendar } from 'lucide-react'
 
 export default function Registro() {
   const navigate = useNavigate()
@@ -17,6 +17,7 @@ export default function Registro() {
   const [email, setEmail] = useState('')
   const [dni, setDni] = useState('')
   const [telefono, setTelefono] = useState('')
+  const [fechaNacimiento, setFechaNacimiento] = useState('')
   const [password, setPassword] = useState('')
   const [referidoDni, setReferidoDni] = useState(queryRef)
   
@@ -77,6 +78,7 @@ export default function Registro() {
             apellido,
             telefono,
             email,
+            fecha_nacimiento: fechaNacimiento || null,
             puntos_actuales: 0,
             nivel: 'Standard'
           })
@@ -117,6 +119,7 @@ export default function Registro() {
                 apellido,
                 telefono,
                 email,
+                fecha_nacimiento: fechaNacimiento || null,
                 referido_por_dni: cleanReferidoDni || null,
                 timestamp: new Date().toISOString()
               })
@@ -286,22 +289,41 @@ export default function Registro() {
               </div>
             </div>
 
-            {/* DNI de quien te recomendó */}
-            <div>
-              <label className="block text-xs font-montserrat uppercase tracking-wider font-extrabold text-tienta-teal mb-2">
-                DNI de quien te recomendó (Opcional)
-              </label>
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-black/50">
-                  <CreditCard size={14} />
-                </span>
-                <input
-                  type="text"
-                  placeholder="DNI de tu amigo referente"
-                  value={referidoDni}
-                  onChange={(e) => setReferidoDni(e.target.value)}
-                  className="input-tienta pl-11 py-2.5 text-black font-semibold text-sm"
-                />
+            {/* Grid de Fecha de Nacimiento y Referido */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-montserrat uppercase tracking-wider font-extrabold text-tienta-teal mb-2">
+                  Fecha de Nacimiento (Opcional)
+                </label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-black/50">
+                    <Calendar size={14} />
+                  </span>
+                  <input
+                    type="date"
+                    value={fechaNacimiento}
+                    onChange={(e) => setFechaNacimiento(e.target.value)}
+                    className="input-tienta pl-11 py-2.5 text-black font-semibold text-sm"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-montserrat uppercase tracking-wider font-extrabold text-tienta-teal mb-2">
+                  ¿Quién te recomendó? (DNI Opcional)
+                </label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-black/50">
+                    <CreditCard size={14} />
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="DNI de tu amigo"
+                    value={referidoDni}
+                    onChange={(e) => setReferidoDni(e.target.value)}
+                    className="input-tienta pl-11 py-2.5 text-black font-semibold text-sm"
+                  />
+                </div>
               </div>
             </div>
 

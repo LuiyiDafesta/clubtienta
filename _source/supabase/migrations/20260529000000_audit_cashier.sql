@@ -162,4 +162,8 @@ create policy "Solo admins insertan cargas manuales"
         and tipo = 'carga_manual'
     );
 
+-- 10. Agregar columna fecha_nacimiento a public.profiles para campañas comerciales
+alter table public.profiles add column if not exists fecha_nacimiento date;
+
+
 

@@ -48,7 +48,7 @@ interface TransaccionAuditoria {
 }
 
 export default function Admin() {
-  const [activeTab, setActiveTab] = useState<'config' | 'premios' | 'promos' | 'auditoria'>('config')
+  const [activeTab, setActiveTab] = useState<'config' | 'premios' | 'promos' | 'auditoria' | 'staff'>('config')
 
   // --- CONFIGURACIÓN ESTADOS ---
   const [valorPunto, setValorPunto] = useState('200')
@@ -58,6 +58,26 @@ export default function Admin() {
   const [webhookN8n, setWebhookN8n] = useState('')
   const [loadingConfig, setLoadingConfig] = useState(false)
   const [successConfig, setSuccessConfig] = useState(false)
+
+  // --- STAFF ESTADOS ---
+  interface StaffMember {
+    id: string
+    nombre: string
+    apellido: string
+    email: string
+    rol: 'admin' | 'cajero'
+    created_at: string
+  }
+  const [staff, setStaff] = useState<StaffMember[]>([])
+  const [loadingStaff, setLoadingStaff] = useState(false)
+  const [staffNombre, setStaffNombre] = useState('')
+  const [staffApellido, setStaffApellido] = useState('')
+  const [staffEmail, setStaffEmail] = useState('')
+  const [staffPassword, setStaffPassword] = useState('')
+  const [staffRol, setStaffRol] = useState<'cajero' | 'admin'>('cajero')
+  const [loadingCreateStaff, setLoadingCreateStaff] = useState(false)
+  const [successCreateStaff, setSuccessCreateStaff] = useState(false)
+  const [errorCreateStaff, setErrorCreateStaff] = useState<string | null>(null)
 
   // --- PREMIOS ESTADOS ---
   const [premios, setPremios] = useState<Premio[]>([])
@@ -91,6 +111,12 @@ export default function Admin() {
     fetchPromociones()
     fetchAuditoria()
   }, [])
+
+  useEffect(() => {
+    if (activeTab === 'staff') {
+      fetchStaff()
+    }
+  }, [activeTab])
 
   // --- 1. CONFIGURACIÓN LOGICA ---
   const fetchConfiguraciones = async () => {
@@ -281,6 +307,117 @@ export default function Admin() {
     }
   }
 
+  // --- 5. STAFF LOGICA ---
+  const fetchStaff = async () => {
+    setLoadingStaff(true)
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, nombre, apellido, email, rol, created_at')
+        .in('rol', ['cajero', 'admin'])
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      if (data) setStaff(data as any)
+    } catch (err) {
+      console.error('Error fetching staff members:', err)
+    } finally {
+      setLoadingStaff(false)
+    }
+  }
+
+  const handleCreateStaff = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoadingCreateStaff(true)
+    setErrorCreateStaff(null)
+    setSuccessCreateStaff(false)
+
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+      if (!supabaseUrl || !supabaseAnonKey) {
+        throw new Error('Variables de entorno de Supabase no configuradas.')
+      }
+
+      // Crear cliente temporal para no desloguear al admin
+      const { createClient } = await import('@supabase/supabase-js')
+      const tempClient = createClient(supabaseUrl, supabaseAnonKey, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false
+        }
+      })
+
+      // Registrar usuario en auth
+      const { data: authData, error: authError } = await tempClient.auth.signUp({
+        email: staffEmail,
+        password: staffPassword,
+        options: {
+          data: {
+            nombre: staffNombre,
+            apellido: staffApellido
+          }
+        }
+      })
+
+      if (authError) throw authError
+      if (!authData?.user) {
+        throw new Error('No se pudo crear el usuario en auth.')
+      }
+
+      const newUserId = authData.user.id
+
+      // Crear perfil en public.profiles sin DNI (null)
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: newUserId,
+          dni: null,
+          nombre: staffNombre,
+          apellido: staffApellido,
+          email: staffEmail,
+          rol: staffRol,
+          puntos_actuales: 0,
+          nivel: 'Standard'
+        })
+
+      if (profileError) throw profileError
+
+      // Invocar RPC para asignar el rol en auth.users
+      const { error: rpcError } = await supabase.rpc('establecer_rol_usuario', {
+        p_usuario_id: newUserId,
+        p_rol: staffRol
+      })
+
+      if (rpcError) throw rpcError
+
+      setSuccessCreateStaff(true)
+      setStaffNombre('')
+      setStaffApellido('')
+      setStaffEmail('')
+      setStaffPassword('')
+      fetchStaff()
+    } catch (err: any) {
+      console.error(err)
+      setErrorCreateStaff(err.message || 'Error al registrar el operador.')
+    } finally {
+      setLoadingCreateStaff(false)
+    }
+  }
+
+  const handleEliminarOperador = async (userId: string) => {
+    if (!window.confirm('¿Estás seguro de que deseas eliminar este operador? Se eliminará su perfil de acceso.')) return
+    try {
+      const { error } = await supabase.from('profiles').delete().eq('id', userId)
+      if (error) throw error
+      fetchStaff()
+    } catch (err: any) {
+      console.error(err)
+      alert('Error al desactivar/eliminar operador: ' + err.message)
+    }
+  }
+
   // --- 4. AUDITORÍA LOGICA ---
   const fetchAuditoria = async () => {
     setLoadingAuditoria(true)
@@ -366,6 +503,14 @@ export default function Admin() {
           }`}
         >
           <span className="flex items-center gap-2"><ShieldCheck size={16} /> Auditoría General</span>
+        </button>
+        <button
+          onClick={() => setActiveTab('staff')}
+          className={`pb-4 text-sm font-montserrat uppercase tracking-wider font-bold cursor-pointer transition-all shrink-0 ${
+            activeTab === 'staff' ? 'border-b-2 border-tienta-gold text-tienta-teal' : 'text-black/60 hover:text-black/90'
+          }`}
+        >
+          <span className="flex items-center gap-2"><Layers size={16} /> Operadores y Staff</span>
         </button>
       </div>
 
@@ -964,6 +1109,186 @@ export default function Admin() {
               </table>
             </div>
           )}
+        </div>
+      )}
+
+      {/* TAB CONTENT: OPERADORES Y STAFF */}
+      {activeTab === 'staff' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          {/* Formulario de Alta */}
+          <div className="lg:col-span-1 bg-white border border-black/5 rounded-3xl p-6 shadow-sm text-left h-fit">
+            <h2 className="text-lg font-montserrat font-bold tracking-wider text-tienta-teal uppercase mb-6 flex items-center gap-2">
+              <Layers size={18} /> Alta de Personal (Staff)
+            </h2>
+
+            {successCreateStaff && (
+              <div className="mb-6 p-4 rounded-2xl bg-green-50 border border-green-100 text-green-600 text-sm flex items-center gap-2 font-semibold">
+                <span>¡Personal dado de alta con éxito!</span>
+              </div>
+            )}
+
+            {errorCreateStaff && (
+              <div className="mb-6 p-4 rounded-2xl bg-red-50 border border-red-100 text-red-600 text-sm font-bold">
+                {errorCreateStaff}
+              </div>
+            )}
+
+            <form onSubmit={handleCreateStaff} className="space-y-4">
+              <div>
+                <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
+                  Nombre
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ej. Martín"
+                  value={staffNombre}
+                  onChange={(e) => setStaffNombre(e.target.value)}
+                  className="input-tienta py-2 text-sm font-semibold text-black font-lato"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
+                  Apellido
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ej. González"
+                  value={staffApellido}
+                  onChange={(e) => setStaffApellido(e.target.value)}
+                  className="input-tienta py-2 text-sm font-semibold text-black font-lato"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
+                  Correo Electrónico
+                </label>
+                <input
+                  type="email"
+                  required
+                  placeholder="ejemplo@tienta.ar"
+                  value={staffEmail}
+                  onChange={(e) => setStaffEmail(e.target.value)}
+                  className="input-tienta py-2 text-sm font-semibold text-black font-lato"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
+                  Contraseña de Acceso
+                </label>
+                <input
+                  type="password"
+                  required
+                  placeholder="Mínimo 6 caracteres"
+                  value={staffPassword}
+                  onChange={(e) => setStaffPassword(e.target.value)}
+                  className="input-tienta py-2 text-sm font-semibold text-black font-lato"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
+                  Rol de Trabajo
+                </label>
+                <select
+                  value={staffRol}
+                  onChange={(e: any) => setStaffRol(e.target.value)}
+                  className="w-full rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-semibold focus:border-tienta-gold focus:outline-none focus:ring-1 focus:ring-tienta-gold transition-all duration-300 text-black h-[42px] font-lato"
+                >
+                  <option value="cajero">Cajero / Operador (Solo Caja y CRM)</option>
+                  <option value="admin">Administrador (Control Total)</option>
+                </select>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loadingCreateStaff}
+                className="w-full btn-tienta-teal py-3 text-sm font-bold tracking-wider cursor-pointer mt-4 uppercase font-montserrat"
+              >
+                {loadingCreateStaff ? 'Registrando...' : 'Dar de Alta Personal'}
+              </button>
+            </form>
+          </div>
+
+          {/* Listado de Personal */}
+          <div className="lg:col-span-2 bg-white border border-black/5 rounded-3xl p-6 sm:p-8 shadow-sm text-left">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-montserrat font-bold tracking-wider text-tienta-teal uppercase">
+                Personal Activo del Club
+              </h2>
+              <span className="text-xs text-black/55 font-bold tracking-wide font-montserrat">
+                Total de Staff: <span className="text-tienta-teal font-extrabold">{staff.length}</span>
+              </span>
+            </div>
+
+            {loadingStaff ? (
+              <div className="flex justify-center items-center py-16 gap-2 text-black/60 text-sm">
+                <RefreshCw size={16} className="animate-spin" /> Cargando listado de personal...
+              </div>
+            ) : staff.length === 0 ? (
+              <p className="text-sm text-black/50 py-16 text-center">No hay personal cargado.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm font-lato text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-black/10 text-black/70 font-montserrat uppercase text-xs tracking-wider">
+                      <th className="pb-3 font-extrabold">Nombre y Apellido</th>
+                      <th className="pb-3 font-extrabold">Email</th>
+                      <th className="pb-3 font-extrabold">Rol</th>
+                      <th className="pb-3 font-extrabold">Fecha Reg.</th>
+                      <th className="pb-3 font-extrabold text-center">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-black/5 font-semibold text-black/85">
+                    {staff.map((member) => (
+                      <tr key={member.id} className="hover:bg-tienta-crema/20">
+                        <td className="py-4">
+                          <span className="font-bold text-black text-sm block">
+                            {member.nombre} {member.apellido}
+                          </span>
+                        </td>
+                        <td className="py-4 text-black/70 text-sm font-medium">
+                          {member.email}
+                        </td>
+                        <td className="py-4">
+                          <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold ${
+                            member.rol === 'admin' 
+                              ? 'bg-tienta-teal/15 text-tienta-teal border border-tienta-teal/20' 
+                              : 'bg-tienta-gold/15 text-tienta-goldDark border border-tienta-gold/25'
+                          }`}>
+                            {member.rol === 'admin' ? 'Administrador' : 'Cajero / Operador'}
+                          </span>
+                        </td>
+                        <td className="py-4 text-black/60 text-xs font-mono">
+                          {new Date(member.created_at).toLocaleDateString('es-AR')}
+                        </td>
+                        <td className="py-4 text-center">
+                          {/* No permitir que el admin se borre a sí mismo */}
+                          {member.email !== 'lsnetinformatica2024@gmail.com' ? (
+                            <button
+                              onClick={() => handleEliminarOperador(member.id)}
+                              className="text-black/40 hover:text-red-600 p-2 rounded-full hover:bg-red-50 transition-colors cursor-pointer"
+                              title="Baja de Personal"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          ) : (
+                            <span className="text-[10px] text-black/35 font-bold italic">Propietario</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
         </div>
       )}
 

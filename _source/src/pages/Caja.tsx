@@ -70,6 +70,57 @@ export default function Caja() {
   // Rol del operador logueado
   const [userRole, setUserRole] = useState<string | null>(null)
 
+  // Sistema de Notificaciones Premium (Modal y Toasts)
+  const [toast, setToast] = useState<{ mostrar: boolean; mensaje: string; tipo: 'success' | 'error' | 'info' }>({
+    mostrar: false,
+    mensaje: '',
+    tipo: 'success'
+  })
+  
+  const [modalConfirmacion, setModalConfirmacion] = useState<{
+    mostrar: boolean;
+    titulo: string;
+    mensaje: string;
+    onConfirmar: () => void;
+  }>({
+    mostrar: false,
+    titulo: '',
+    mensaje: '',
+    onConfirmar: () => {}
+  })
+
+  const mostrarToast = (mensaje: string, tipo: 'success' | 'error' | 'info' = 'success') => {
+    setToast({ mostrar: true, mensaje, tipo })
+  }
+
+  const cerrarToast = () => {
+    setToast(prev => ({ ...prev, mostrar: false }))
+  }
+
+  // Auto-ocultar toast después de 4 segundos
+  useEffect(() => {
+    if (toast.mostrar) {
+      const t = setTimeout(() => cerrarToast(), 4000)
+      return () => clearTimeout(t)
+    }
+  }, [toast.mostrar])
+
+  const mostrarConfirmacion = (titulo: string, mensaje: string, onConfirmar: () => void) => {
+    setModalConfirmacion({
+      mostrar: true,
+      titulo,
+      mensaje,
+      onConfirmar: () => {
+        onConfirmar()
+        cerrarConfirmacion()
+      }
+    })
+  }
+
+  const cerrarConfirmacion = () => {
+    setModalConfirmacion(prev => ({ ...prev, mostrar: false }))
+  }
+
   // Carga de Premios y Configuración al montar
   useEffect(() => {
     fetchPremios()
@@ -221,7 +272,7 @@ export default function Caja() {
 
     } catch (err: any) {
       console.error(err)
-      alert(err.message || 'Error al cargar puntos.')
+      mostrarToast(err.message || 'Error al cargar puntos.', 'error')
     } finally {
       setLoadingCompra(false)
     }
@@ -233,7 +284,7 @@ export default function Caja() {
     if (!cliente || !puntosManuales || !detalleManual) return
 
     if (userRole !== 'admin') {
-      alert('Acceso denegado. Solo los administradores de ClubTienta pueden realizar cargas manuales.')
+      mostrarToast('Acceso denegado. Solo administradores pueden realizar cargas manuales.', 'error')
       return
     }
 
@@ -268,7 +319,7 @@ export default function Caja() {
 
     } catch (err: any) {
       console.error(err)
-      alert(err.message || 'Error al cargar puntos manuales.')
+      mostrarToast(err.message || 'Error al cargar puntos manuales.', 'error')
     } finally {
       setLoadingManual(false)
     }
@@ -278,33 +329,36 @@ export default function Caja() {
   const handleCanjearPremio = async (premio: Premio) => {
     if (!cliente) return
     
-    const confirmar = window.confirm(`¿Confirmás el canje de ${premio.nombre} por ${premio.puntos_requeridos} puntos?`)
-    if (!confirmar) return
+    mostrarConfirmacion(
+      'Confirmar Canje',
+      `¿Confirmás el canje de ${premio.nombre} por ${premio.puntos_requeridos} puntos para ${cliente.nombre} ${cliente.apellido}?`,
+      async () => {
+        try {
+          const { data: { session } } = await supabase.auth.getSession()
 
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
+          const { error } = await supabase
+            .from('transacciones')
+            .insert({
+              cliente_id: cliente.id,
+              tipo: 'canje_premio',
+              importe: null,
+              puntos: -premio.puntos_requeridos,
+              ticket_factura: null,
+              detalle: `Canje de premio en caja: ${premio.nombre}`,
+              creado_por: session?.user?.id || null
+            })
 
-      const { error } = await supabase
-        .from('transacciones')
-        .insert({
-          cliente_id: cliente.id,
-          tipo: 'canje_premio',
-          importe: null,
-          puntos: -premio.puntos_requeridos, // Negativo para descontar
-          ticket_factura: null,
-          detalle: `Canje de premio en caja: ${premio.nombre}`,
-          creado_por: session?.user?.id || null
-        })
+          if (error) throw error
 
-      if (error) throw error
+          mostrarToast(`¡Premio canjeado con éxito! Entregá: ${premio.nombre}`, 'success')
+          await recargarCliente()
 
-      alert(`✓ ¡Premio canjeado con éxito! Entregá el premio: ${premio.nombre}`)
-      await recargarCliente()
-
-    } catch (err: any) {
-      console.error(err)
-      alert(err.message || 'Error al canjear el premio.')
-    }
+        } catch (err: any) {
+          console.error(err)
+          mostrarToast(err.message || 'Error al canjear el premio.', 'error')
+        }
+      }
+    )
   }
 
   // Previsualización dinámica de puntos en formulario
@@ -667,6 +721,56 @@ export default function Caja() {
           <p className="text-sm text-black/60 mt-2 max-w-sm mx-auto font-lato leading-relaxed font-medium">
             Desde aquí podrás asignar puntos por consumos, realizar canjes de premios e ingresar ajustes de auditoría con seguridad.
           </p>
+        </div>
+      )}
+
+      {/* Toast Notification Premium */}
+      {toast.mostrar && (
+        <div className={`fixed bottom-5 right-5 z-50 flex items-center gap-3 px-5 py-4 rounded-2xl shadow-lg border animate-slide-in ${
+          toast.tipo === 'success' 
+            ? 'bg-green-50 border-green-200 text-green-800' 
+            : toast.tipo === 'error'
+              ? 'bg-red-50 border-red-200 text-red-800'
+              : 'bg-tienta-crema border-tienta-gold/30 text-tienta-teal'
+        }`}>
+          {toast.tipo === 'success' && <CheckCircle2 className="text-green-600" size={20} />}
+          {toast.tipo === 'error' && <AlertCircle className="text-red-600" size={20} />}
+          {toast.tipo === 'info' && <IceCream className="text-tienta-gold" size={20} />}
+          <span className="font-montserrat font-bold text-xs uppercase tracking-wider">{toast.mensaje}</span>
+          <button 
+            onClick={cerrarToast}
+            className="text-black/40 hover:text-black/70 font-bold ml-2 text-xs cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* Modal de Confirmación Premium */}
+      {modalConfirmacion.mostrar && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs animate-fade-in p-4">
+          <div className="bg-white rounded-3xl border border-black/5 p-6 sm:p-8 max-w-md w-full shadow-2xl animate-scale-up text-left font-lato">
+            <h3 className="text-lg font-montserrat font-extrabold text-tienta-teal uppercase tracking-wider mb-2">
+              {modalConfirmacion.titulo}
+            </h3>
+            <p className="text-sm text-black/75 font-medium leading-relaxed mb-6">
+              {modalConfirmacion.mensaje}
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={cerrarConfirmacion}
+                className="btn-tienta-outline px-5 py-2 text-[10px] tracking-widest font-extrabold cursor-pointer border-black/10 hover:bg-black/5 text-black/60"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={modalConfirmacion.onConfirmar}
+                className="btn-tienta-teal px-5 py-2 text-[10px] tracking-widest font-extrabold cursor-pointer"
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

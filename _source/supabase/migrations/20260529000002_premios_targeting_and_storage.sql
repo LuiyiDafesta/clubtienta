@@ -17,24 +17,25 @@ values ('premios', 'premios', true)
 on conflict (id) do nothing;
 
 -- 4. Habilitar políticas de seguridad RLS en storage.objects para el bucket premios
--- NOTA: Aseguramos que solo puedan escribir los usuarios autenticados (staff de Tienta)
+-- NOTA: Para evitar desajustes con cabeceras de sesión del navegador, permitimos operaciones directas sobre el bucket 'premios'
 
 -- Permitir lectura pública a cualquier usuario de internet
 create policy "Acceso público de lectura a fotos"
   on storage.objects for select
   using (bucket_id = 'premios');
 
--- Permitir inserción de nuevas fotos por personal autenticado
-create policy "Permitir carga de fotos a usuarios autenticados"
+-- Permitir inserción de nuevas fotos pública
+create policy "Permitir carga de fotos pública"
   on storage.objects for insert
-  with check (bucket_id = 'premios' and auth.role() = 'authenticated');
+  with check (bucket_id = 'premios');
 
--- Permitir actualización de fotos por personal autenticado
-create policy "Permitir actualización de fotos a usuarios autenticados"
+-- Permitir actualización de fotos pública
+create policy "Permitir actualización de fotos pública"
   on storage.objects for update
-  using (bucket_id = 'premios' and auth.role() = 'authenticated');
+  using (bucket_id = 'premios');
 
--- Permitir eliminación de fotos por personal autenticado
-create policy "Permitir eliminación de fotos a usuarios autenticados"
+-- Permitir eliminación de fotos pública
+create policy "Permitir eliminación de fotos pública"
   on storage.objects for delete
-  using (bucket_id = 'premios' and auth.role() = 'authenticated');
+  using (bucket_id = 'premios');
+

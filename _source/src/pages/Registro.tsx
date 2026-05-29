@@ -133,7 +133,7 @@ export default function Registro() {
             email,
             fecha_nacimiento: fechaNacimiento,
             puntos_actuales: 0,
-            nivel: 'Standard'
+            nivel: 'Gold'
           })
 
         if (profileError) {

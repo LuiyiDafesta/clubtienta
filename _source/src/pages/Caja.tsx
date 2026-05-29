@@ -54,6 +54,8 @@ export default function Caja() {
   
   // Configuración de Puntos
   const [valorPunto, setValorPunto] = useState<number>(200) // $200 = 1 punto por defecto
+  const [bonoGold, setBonoGold] = useState<number>(0)
+  const [bonoPlatinum, setBonoPlatinum] = useState<number>(20)
 
   // Formulario Carga de Compra
   const [importeCompra, setImporteCompra] = useState('')
@@ -148,10 +150,14 @@ export default function Caja() {
     const { data, error } = await supabase
       .from('configuraciones')
       .select('clave, valor')
-      .eq('clave', 'valor_punto')
-      .maybeSingle()
+      .in('clave', ['valor_punto', 'bono_puntos_gold', 'bono_puntos_platinum'])
     if (!error && data) {
-      setValorPunto(Number(data.valor) || 200)
+      const p = data.find(c => c.clave === 'valor_punto')
+      const bg = data.find(c => c.clave === 'bono_puntos_gold')
+      const bp = data.find(c => c.clave === 'bono_puntos_platinum')
+      if (p) setValorPunto(Number(p.valor) || 200)
+      if (bg) setBonoGold(Number(bg.valor) || 0)
+      if (bp) setBonoPlatinum(Number(bp.valor) || 0)
     }
   }
 
@@ -236,11 +242,11 @@ export default function Caja() {
       // Por simplicidad, calculamos puntos = importe / valorPunto
       let puntosCalculados = Math.floor(importe / valorPunto)
 
-      // Aplicar multiplicador del 10% para nivel Oro y 20% para nivel Platino en caja para incentivar
-      if (cliente.nivel === 'Oro') {
-        puntosCalculados = Math.floor(puntosCalculados * 1.1)
-      } else if (cliente.nivel === 'Platino') {
-        puntosCalculados = Math.floor(puntosCalculados * 1.2)
+      // Aplicar multiplicador dinámico de puntos configurado por el administrador para Gold o Platinum
+      if (cliente.nivel === 'Platinum' && bonoPlatinum > 0) {
+        puntosCalculados = Math.floor(puntosCalculados * (1 + bonoPlatinum / 100))
+      } else if (cliente.nivel === 'Gold' && bonoGold > 0) {
+        puntosCalculados = Math.floor(puntosCalculados * (1 + bonoGold / 100))
       }
 
       if (puntosCalculados <= 0) {
@@ -366,8 +372,8 @@ export default function Caja() {
     const imp = Number(importeCompra)
     if (isNaN(imp) || imp <= 0) return 0
     let pts = Math.floor(imp / valorPunto)
-    if (cliente?.nivel === 'Oro') pts = Math.floor(pts * 1.1)
-    if (cliente?.nivel === 'Platino') pts = Math.floor(pts * 1.2)
+    if (cliente?.nivel === 'Platinum' && bonoPlatinum > 0) pts = Math.floor(pts * (1 + bonoPlatinum / 100))
+    if (cliente?.nivel === 'Gold' && bonoGold > 0) pts = Math.floor(pts * (1 + bonoGold / 100))
     return pts
   }
 
@@ -493,7 +499,10 @@ export default function Caja() {
                   />
                   {importeCompra && (
                     <span className="text-xs text-tienta-goldDark font-extrabold mt-2 block tracking-wide bg-tienta-gold/5 border border-tienta-gold/25 p-2 rounded-xl">
-                      ⚡ Sumará {previewPuntos()} puntos {cliente.nivel !== 'Standard' && `(Con bono de nivel ${cliente.nivel})`}
+                      ⚡ Sumará {previewPuntos()} puntos {
+                        ((cliente.nivel === 'Platinum' && bonoPlatinum > 0) || (cliente.nivel === 'Gold' && bonoGold > 0)) && 
+                        `(Con bono de nivel ${cliente.nivel}: +${cliente.nivel === 'Platinum' ? bonoPlatinum : bonoGold}%)`
+                      }
                     </span>
                   )}
                 </div>

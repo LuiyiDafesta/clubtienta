@@ -189,11 +189,9 @@ export default function Crm() {
                       </td>
                       <td className="py-4 px-6">
                         <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold ${
-                          c.nivel === 'Standard' 
-                            ? 'bg-black/5 text-black/75 border border-black/10' 
-                            : c.nivel === 'Oro' 
-                              ? 'bg-tienta-gold/15 text-tienta-goldDark border border-tienta-gold/25' 
-                              : 'bg-tienta-teal/10 text-tienta-teal border border-tienta-teal/20'
+                          c.nivel === 'Gold' 
+                            ? 'bg-tienta-gold/15 text-tienta-goldDark border border-tienta-gold/25' 
+                            : 'bg-tienta-teal/10 text-tienta-teal border border-tienta-teal/20'
                         }`}>
                           {c.nivel}
                         </span>

@@ -56,6 +56,10 @@ export default function Admin() {
   const [puntosBienvenida, setPuntosBienvenida] = useState('50')
   const [puntosReferido, setPuntosReferido] = useState('100')
   const [webhookN8n, setWebhookN8n] = useState('')
+  const [limiteGold, setLimiteGold] = useState('0')
+  const [limitePlatinum, setLimitePlatinum] = useState('20000')
+  const [bonoGold, setBonoGold] = useState('0')
+  const [bonoPlatinum, setBonoPlatinum] = useState('20')
   const [loadingConfig, setLoadingConfig] = useState(false)
   const [successConfig, setSuccessConfig] = useState(false)
 
@@ -104,7 +108,7 @@ export default function Admin() {
   const [filtroTicket, setFiltroTicket] = useState('')
 
   const diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
-  const nivelesClub = ['Standard', 'Oro', 'Platino']
+  const nivelesClub = ['Gold', 'Platinum']
 
   useEffect(() => {
     fetchConfiguraciones()
@@ -128,12 +132,20 @@ export default function Admin() {
       const pb = data.find(c => c.clave === 'puntos_bienvenida')
       const pr = data.find(c => c.clave === 'puntos_referido')
       const wh = data.find(c => c.clave === 'webhook_n8n')
+      const lg = data.find(c => c.clave === 'limite_consumo_gold')
+      const lp = data.find(c => c.clave === 'limite_consumo_platinum')
+      const bg = data.find(c => c.clave === 'bono_puntos_gold')
+      const bp = data.find(c => c.clave === 'bono_puntos_platinum')
       
       if (p) setValorPunto(p.valor)
       if (e) setExpiracionMeses(e.valor)
       if (pb) setPuntosBienvenida(pb.valor)
       if (pr) setPuntosReferido(pr.valor)
       if (wh) setWebhookN8n(wh.valor)
+      if (lg) setLimiteGold(lg.valor)
+      if (lp) setLimitePlatinum(lp.valor)
+      if (bg) setBonoGold(bg.valor)
+      if (bp) setBonoPlatinum(bp.valor)
     }
   }
 
@@ -150,7 +162,11 @@ export default function Admin() {
         { clave: 'expiracion_meses', valor: expiracionMeses },
         { clave: 'puntos_bienvenida', valor: puntosBienvenida },
         { clave: 'puntos_referido', valor: puntosReferido },
-        { clave: 'webhook_n8n', valor: webhookN8n }
+        { clave: 'webhook_n8n', valor: webhookN8n },
+        { clave: 'limite_consumo_gold', valor: limiteGold },
+        { clave: 'limite_consumo_platinum', valor: limitePlatinum },
+        { clave: 'bono_puntos_gold', valor: bonoGold },
+        { clave: 'bono_puntos_platinum', valor: bonoPlatinum }
       ]
 
       for (const item of keys) {
@@ -402,7 +418,7 @@ export default function Admin() {
             email: staffEmail,
             rol: staffRol,
             puntos_actuales: 0,
-            nivel: 'Standard'
+            nivel: 'Gold'
           })
 
         if (profileError) throw profileError
@@ -641,6 +657,74 @@ export default function Admin() {
                 />
                 <span className="text-xs text-black/65 mt-1.5 block leading-relaxed font-medium">
                   Bono acreditado al socio que recomendó cuando el amigo se asocia.
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-black/5">
+              <div>
+                <label className="block text-sm font-montserrat uppercase tracking-wider font-bold text-tienta-teal mb-2">
+                  Límite de Consumo - Gold ($) 🏆
+                </label>
+                <input
+                  type="number"
+                  required
+                  value={limiteGold}
+                  onChange={(e) => setLimiteGold(e.target.value)}
+                  className="input-tienta text-black py-3 text-base font-semibold"
+                />
+                <span className="text-xs text-black/65 mt-1.5 block leading-relaxed font-medium">
+                  Pesos consumidos acumulados necesarios para la membresía Gold (inicial).
+                </span>
+              </div>
+
+              <div>
+                <label className="block text-sm font-montserrat uppercase tracking-wider font-bold text-tienta-teal mb-2">
+                  Límite de Consumo - Platinum ($) 💎
+                </label>
+                <input
+                  type="number"
+                  required
+                  value={limitePlatinum}
+                  onChange={(e) => setLimitePlatinum(e.target.value)}
+                  className="input-tienta text-black py-3 text-base font-semibold"
+                />
+                <span className="text-xs text-black/65 mt-1.5 block leading-relaxed font-medium">
+                  Pesos consumidos acumulados necesarios para ascender a Platinum.
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-black/5">
+              <div>
+                <label className="block text-sm font-montserrat uppercase tracking-wider font-bold text-tienta-teal mb-2">
+                  Bono de Puntos Extra - Gold (%) ⚡
+                </label>
+                <input
+                  type="number"
+                  required
+                  value={bonoGold}
+                  onChange={(e) => setBonoGold(e.target.value)}
+                  className="input-tienta text-black py-3 text-base font-semibold"
+                />
+                <span className="text-xs text-black/65 mt-1.5 block leading-relaxed font-medium">
+                  Porcentaje de puntos adicionales sumados en compras de socios Gold (ej. 0 = 0% extra).
+                </span>
+              </div>
+
+              <div>
+                <label className="block text-sm font-montserrat uppercase tracking-wider font-bold text-tienta-teal mb-2">
+                  Bono de Puntos Extra - Platinum (%) ✨
+                </label>
+                <input
+                  type="number"
+                  required
+                  value={bonoPlatinum}
+                  onChange={(e) => setBonoPlatinum(e.target.value)}
+                  className="input-tienta text-black py-3 text-base font-semibold"
+                />
+                <span className="text-xs text-black/65 mt-1.5 block leading-relaxed font-medium">
+                  Porcentaje de puntos adicionales sumados en compras de socios Platinum (ej. 20 = 20% extra).
                 </span>
               </div>
             </div>

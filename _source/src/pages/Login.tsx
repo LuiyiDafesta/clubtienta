@@ -28,7 +28,22 @@ export default function Login() {
       if (error) throw error
 
       if (data?.user) {
-        const role = data.user.app_metadata?.role || 'client'
+        // Verificar si el perfil está activo
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('rol, activo')
+          .eq('id', data.user.id)
+          .maybeSingle()
+
+        if (profileError) throw profileError
+
+        if (profile && profile.activo === false) {
+          // Cerrar sesión en auth inmediatamente y dar mensaje de error
+          await supabase.auth.signOut()
+          throw new Error('Tu cuenta ha sido desactivada por políticas de seguridad (Derecho de Admisión). Por favor, contactá a la administración.')
+        }
+
+        const role = profile?.rol || 'client'
         
         if (role === 'admin' || role === 'cajero') {
           navigate('/caja')

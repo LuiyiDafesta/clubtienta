@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useNavigate } from 'react-router-dom'
-import { Gift, QrCode, RefreshCw, Activity, Percent, Share2, Copy } from 'lucide-react'
+import { Gift, QrCode, RefreshCw, Activity, Percent, Share2, Copy, UserCog, User, MessageSquare, Calendar } from 'lucide-react'
 
 // Interfaces
 interface Cliente {
@@ -13,6 +13,7 @@ interface Cliente {
   email: string
   puntos_actuales: number
   nivel: string
+  fecha_nacimiento?: string | null
 }
 
 interface Premio {
@@ -59,12 +60,90 @@ export default function Dashboard() {
   const [totalConsumido, setTotalConsumido] = useState(0)
   const [limitePlatinum, setLimitePlatinum] = useState(20000)
 
+  // Estados para Modal de Edición de Perfil
+  const [editingProfile, setEditingProfile] = useState(false)
+  const [editNombre, setEditNombre] = useState('')
+  const [editApellido, setEditApellido] = useState('')
+  const [editTelefono, setEditTelefono] = useState('')
+  const [editFechaNacimiento, setEditFechaNacimiento] = useState('')
+  const [savingEdit, setSavingEdit] = useState(false)
+
   const handleCopyLink = () => {
     if (!cliente) return
     const inviteText = `¡Sumate al ClubTienta! Registrate gratis usando mi DNI ${cliente.dni} como referido y sumá tus primeros puntos de regalo para canjear por helados en Tienta: ${window.location.origin}/registro?ref=${cliente.dni}`
     navigator.clipboard.writeText(inviteText)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  // Cargar datos en el formulario del modal al seleccionar editar
+  useEffect(() => {
+    if (cliente) {
+      setEditNombre(cliente.nombre || '')
+      setEditApellido(cliente.apellido || '')
+      setEditTelefono(cliente.telefono || '')
+      setEditFechaNacimiento(cliente.fecha_nacimiento || '')
+    }
+  }, [cliente, editingProfile])
+
+  const handleGuardarEdicion = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!cliente) return
+    setSavingEdit(true)
+
+    try {
+      // 1. Normalizar Whatsapp (549 + 10 dígitos)
+      let cleanWhatsapp = editTelefono.replace(/\D/g, '')
+      if (!cleanWhatsapp) {
+        throw new Error('El número de WhatsApp es obligatorio.')
+      }
+
+      if (cleanWhatsapp.startsWith('0')) {
+        cleanWhatsapp = cleanWhatsapp.substring(1)
+      }
+      if (cleanWhatsapp.length === 12 && cleanWhatsapp.substring(3, 5) === '15') {
+        cleanWhatsapp = cleanWhatsapp.substring(0, 3) + cleanWhatsapp.substring(5)
+      }
+
+      if (cleanWhatsapp.startsWith('549') && cleanWhatsapp.length === 13) {
+        // Correcto
+      } else if (cleanWhatsapp.startsWith('54') && cleanWhatsapp.length === 12) {
+        cleanWhatsapp = '549' + cleanWhatsapp.substring(2)
+      } else if (cleanWhatsapp.length === 10) {
+        cleanWhatsapp = '549' + cleanWhatsapp
+      } else {
+        throw new Error('Por favor ingresá un número de WhatsApp válido de 10 dígitos (código de área + número, sin el 0 y sin el 15).')
+      }
+
+      // 2. Ejecutar actualización en Supabase
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          nombre: editNombre.trim(),
+          apellido: editApellido.trim(),
+          telefono: cleanWhatsapp,
+          fecha_nacimiento: editFechaNacimiento || null
+        })
+        .eq('id', cliente.id)
+
+      if (error) throw error
+
+      // 3. Actualizar estado local
+      setCliente(prev => prev ? {
+        ...prev,
+        nombre: editNombre.trim(),
+        apellido: editApellido.trim(),
+        telefono: cleanWhatsapp,
+        fecha_nacimiento: editFechaNacimiento || null
+      } : null)
+
+      setEditingProfile(false)
+    } catch (err: any) {
+      console.error('Error al editar perfil:', err)
+      alert(err.message || 'Error al guardar los datos del perfil.')
+    } finally {
+      setSavingEdit(false)
+    }
   }
 
   useEffect(() => {
@@ -88,8 +167,13 @@ export default function Dashboard() {
         .eq('id', session.user.id)
         .maybeSingle()
 
-      if (profile) {
-        setCliente(profile)
+      if (!profile || profile.activo === false) {
+        await supabase.auth.signOut()
+        navigate('/')
+        return
+      }
+
+      setCliente(profile)
         
         // 2. Obtener historial del socio
         const { data: txs } = await supabase
@@ -121,7 +205,6 @@ export default function Dashboard() {
           const lp = configData.find(c => c.clave === 'limite_consumo_platinum')
           if (lp) setLimitePlatinum(Number(lp.valor || 20000))
         }
-      }
 
       // 3. Obtener premios activos
       const { data: rewards } = await supabase
@@ -185,13 +268,22 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          className="flex items-center gap-1.5 text-xs text-tienta-goldDark font-bold hover:text-tienta-teal tracking-wider uppercase font-montserrat cursor-pointer"
-        >
-          <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} /> {refreshing ? 'Actualizando...' : 'Actualizar Puntos'}
-        </button>
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4 self-start sm:self-auto">
+          <button
+            onClick={() => setEditingProfile(true)}
+            className="flex items-center gap-1.5 text-xs text-tienta-goldDark font-bold hover:text-tienta-teal tracking-wider uppercase font-montserrat cursor-pointer border border-tienta-gold/20 px-4 py-2 rounded-full hover:bg-tienta-gold/5 transition-all duration-200"
+          >
+            <UserCog size={12} /> Editar Mis Datos
+          </button>
+          
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="flex items-center gap-1.5 text-xs text-tienta-goldDark font-bold hover:text-tienta-teal tracking-wider uppercase font-montserrat cursor-pointer border border-tienta-gold/20 px-4 py-2 rounded-full hover:bg-tienta-gold/5 transition-all duration-200"
+          >
+            <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} /> {refreshing ? 'Actualizando...' : 'Actualizar Puntos'}
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -526,6 +618,149 @@ export default function Dashboard() {
 
       </div>
 
+      {/* Modal de Edición de Perfil de Socio */}
+      {editingProfile && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in text-left">
+          <div className="bg-white border border-black/10 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl animate-scale-up">
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <span className="text-[10px] font-montserrat uppercase tracking-[0.2em] text-tienta-goldDark font-extrabold">
+                  Mi Perfil ClubTienta
+                </span>
+                <h3 className="text-xl font-montserrat font-extrabold text-tienta-teal uppercase tracking-wider mt-0.5">
+                  Editar Mis Datos
+                </h3>
+              </div>
+              <button
+                onClick={() => setEditingProfile(false)}
+                className="text-black/40 hover:text-black font-bold text-xl cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleGuardarEdicion} className="space-y-4">
+              
+              {/* Bloque Fijo: DNI y Email */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-tienta-crema/40 border border-black/5 p-4 rounded-2xl">
+                <div>
+                  <span className="block text-[9px] font-montserrat uppercase tracking-wider font-extrabold text-black/45 mb-1">
+                    Mi DNI (Fijo)
+                  </span>
+                  <span className="text-sm font-bold text-black/70 font-mono tracking-wide">
+                    {cliente.dni}
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-[9px] font-montserrat uppercase tracking-wider font-extrabold text-black/45 mb-1">
+                    Mi Email (Fijo)
+                  </span>
+                  <span className="text-sm font-bold text-black/70 font-mono truncate block max-w-full">
+                    {cliente.email}
+                  </span>
+                </div>
+              </div>
+
+              {/* Grid de Nombre y Apellido */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-montserrat uppercase tracking-wider font-extrabold text-tienta-teal mb-2">
+                    Nombre
+                  </label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-black/50">
+                      <User size={14} />
+                    </span>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ej. Juan"
+                      value={editNombre}
+                      onChange={(e) => setEditNombre(e.target.value)}
+                      className="input-tienta pl-11 py-2.5 text-black font-semibold text-sm bg-white"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-montserrat uppercase tracking-wider font-extrabold text-tienta-teal mb-2">
+                    Apellido
+                  </label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-black/50">
+                      <User size={14} />
+                    </span>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ej. Pérez"
+                      value={editApellido}
+                      onChange={(e) => setEditApellido(e.target.value)}
+                      className="input-tienta pl-11 py-2.5 text-black font-semibold text-sm bg-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Teléfono (WhatsApp) */}
+              <div>
+                <label className="block text-xs font-montserrat uppercase tracking-wider font-extrabold text-tienta-teal mb-2">
+                  WhatsApp (10 dígitos sin 0 ni 15)
+                </label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-black/50">
+                    <MessageSquare size={14} />
+                  </span>
+                  <input
+                    type="tel"
+                    required
+                    placeholder="Ej. 3416123456"
+                    value={editTelefono}
+                    onChange={(e) => setEditTelefono(e.target.value)}
+                    className="input-tienta pl-11 py-2.5 text-black font-semibold text-sm bg-white"
+                  />
+                </div>
+              </div>
+
+              {/* Fecha de Nacimiento */}
+              <div>
+                <label className="block text-xs font-montserrat uppercase tracking-wider font-extrabold text-tienta-teal mb-2">
+                  Fecha de Nacimiento
+                </label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-black/50">
+                    <Calendar size={14} />
+                  </span>
+                  <input
+                    type="date"
+                    required
+                    value={editFechaNacimiento}
+                    onChange={(e) => setEditFechaNacimiento(e.target.value)}
+                    className="input-tienta pl-11 py-2.5 text-black font-semibold text-sm bg-white"
+                  />
+                </div>
+              </div>
+
+              {/* Botones de acción */}
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-black/5">
+                <button
+                  type="button"
+                  onClick={() => setEditingProfile(false)}
+                  className="btn-tienta-outline px-5 py-2.5 text-xs font-bold font-montserrat uppercase tracking-wider cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingEdit}
+                  className="btn-tienta-teal px-6 py-2.5 text-xs font-bold font-montserrat uppercase tracking-wider cursor-pointer disabled:opacity-55"
+                >
+                  {savingEdit ? 'Guardando...' : 'Guardar Cambios'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

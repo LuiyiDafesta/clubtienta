@@ -17,6 +17,7 @@ interface ClienteCRM {
   created_at: string
   fecha_nacimiento?: string | null
   nivel_manual?: boolean
+  activo?: boolean
 }
 
 export default function Crm() {
@@ -33,6 +34,7 @@ export default function Crm() {
   const [editApellido, setEditApellido] = useState('')
   const [editTelefono, setEditTelefono] = useState('')
   const [editFechaNacimiento, setEditFechaNacimiento] = useState('')
+  const [editActivo, setEditActivo] = useState(true)
   const [savingEdit, setSavingEdit] = useState(false)
 
   useEffect(() => {
@@ -131,6 +133,7 @@ export default function Crm() {
       setEditApellido(editingCliente.apellido || '')
       setEditTelefono(editingCliente.telefono || '')
       setEditFechaNacimiento(editingCliente.fecha_nacimiento || '')
+      setEditActivo(editingCliente.activo !== false)
     }
   }, [editingCliente])
 
@@ -170,7 +173,8 @@ export default function Crm() {
           nombre: editNombre.trim(),
           apellido: editApellido.trim(),
           telefono: cleanWhatsapp,
-          fecha_nacimiento: editFechaNacimiento || null
+          fecha_nacimiento: editFechaNacimiento || null,
+          activo: editActivo
         })
         .eq('id', editingCliente.id)
 
@@ -184,7 +188,8 @@ export default function Crm() {
             nombre: editNombre.trim(),
             apellido: editApellido.trim(),
             telefono: cleanWhatsapp,
-            fecha_nacimiento: editFechaNacimiento || null
+            fecha_nacimiento: editFechaNacimiento || null,
+            activo: editActivo
           }
         }
         return c
@@ -296,8 +301,13 @@ export default function Crm() {
                         {new Date(c.created_at).toLocaleDateString('es-AR')}
                       </td>
                       <td className="py-4 px-6">
-                        <span className="font-bold block text-black text-sm">
+                        <span className="font-bold block text-black text-sm flex items-center gap-2">
                           {c.nombre} {c.apellido}
+                          {c.activo === false && (
+                            <span className="bg-red-100 text-red-700 text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider border border-red-200">
+                              Suspendido
+                            </span>
+                          )}
                         </span>
                         <span className="text-xs text-black/60 block mt-0.5 font-mono">DNI: {c.dni}</span>
                         {c.fecha_nacimiento && (
@@ -507,6 +517,21 @@ export default function Crm() {
                   onChange={(e) => setEditFechaNacimiento(e.target.value)}
                   className="input-tienta py-2.5 text-black font-semibold text-sm bg-white"
                 />
+              </div>
+
+              {/* Estado de Admisión / Cuenta */}
+              <div>
+                <label className="block text-xs font-montserrat uppercase tracking-wider font-extrabold text-tienta-teal mb-2">
+                  Estado de Admisión / Cuenta
+                </label>
+                <select
+                  value={editActivo ? 'true' : 'false'}
+                  onChange={(e) => setEditActivo(e.target.value === 'true')}
+                  className="input-tienta py-2.5 text-black font-semibold text-sm bg-white cursor-pointer"
+                >
+                  <option value="true">✅ Activo (Acceso Permitido)</option>
+                  <option value="false">🚫 Suspendido (Derecho de Admisión)</option>
+                </select>
               </div>
 
               {/* Botones de acción */}

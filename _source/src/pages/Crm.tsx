@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { 
   Layers, RefreshCw, Search, Mail, MessageSquare, 
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, Edit
 } from 'lucide-react'
 
 interface ClienteCRM {
@@ -26,6 +26,14 @@ export default function Crm() {
   const [pagina, setPagina] = useState(0)
   const [totalFilas, setTotalFilas] = useState(0)
   const itemsPorPagina = 15
+
+  // Estados para Modal de Edición de Perfil
+  const [editingCliente, setEditingCliente] = useState<ClienteCRM | null>(null)
+  const [editNombre, setEditNombre] = useState('')
+  const [editApellido, setEditApellido] = useState('')
+  const [editTelefono, setEditTelefono] = useState('')
+  const [editFechaNacimiento, setEditFechaNacimiento] = useState('')
+  const [savingEdit, setSavingEdit] = useState(false)
 
   useEffect(() => {
     fetchClientes()
@@ -113,6 +121,81 @@ export default function Crm() {
     } catch (err: any) {
       console.error('Error al cambiar nivel:', err)
       alert('Error al actualizar membresía: ' + err.message)
+    }
+  }
+
+  // Cargar datos en el formulario del modal al seleccionar cliente
+  useEffect(() => {
+    if (editingCliente) {
+      setEditNombre(editingCliente.nombre || '')
+      setEditApellido(editingCliente.apellido || '')
+      setEditTelefono(editingCliente.telefono || '')
+      setEditFechaNacimiento(editingCliente.fecha_nacimiento || '')
+    }
+  }, [editingCliente])
+
+  const handleGuardarEdicion = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingCliente) return
+    setSavingEdit(true)
+
+    try {
+      // 1. Normalizar Whatsapp (549 + 10 dígitos)
+      let cleanWhatsapp = editTelefono.replace(/\D/g, '')
+      if (!cleanWhatsapp) {
+        throw new Error('El número de WhatsApp es obligatorio.')
+      }
+
+      if (cleanWhatsapp.startsWith('0')) {
+        cleanWhatsapp = cleanWhatsapp.substring(1)
+      }
+      if (cleanWhatsapp.length === 12 && cleanWhatsapp.substring(3, 5) === '15') {
+        cleanWhatsapp = cleanWhatsapp.substring(0, 3) + cleanWhatsapp.substring(5)
+      }
+
+      if (cleanWhatsapp.startsWith('549') && cleanWhatsapp.length === 13) {
+        // Correcto
+      } else if (cleanWhatsapp.startsWith('54') && cleanWhatsapp.length === 12) {
+        cleanWhatsapp = '549' + cleanWhatsapp.substring(2)
+      } else if (cleanWhatsapp.length === 10) {
+        cleanWhatsapp = '549' + cleanWhatsapp
+      } else {
+        throw new Error('Por favor ingresá un número de WhatsApp válido de 10 dígitos (código de área + número, sin el 0 y sin el 15).')
+      }
+
+      // 2. Ejecutar actualización en Supabase
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          nombre: editNombre.trim(),
+          apellido: editApellido.trim(),
+          telefono: cleanWhatsapp,
+          fecha_nacimiento: editFechaNacimiento || null
+        })
+        .eq('id', editingCliente.id)
+
+      if (error) throw error
+
+      // 3. Actualizar estado local
+      setClientes(prev => prev.map(c => {
+        if (c.id === editingCliente.id) {
+          return {
+            ...c,
+            nombre: editNombre.trim(),
+            apellido: editApellido.trim(),
+            telefono: cleanWhatsapp,
+            fecha_nacimiento: editFechaNacimiento || null
+          }
+        }
+        return c
+      }))
+
+      setEditingCliente(null)
+    } catch (err: any) {
+      console.error('Error al editar cliente:', err)
+      alert(err.message || 'Error al guardar los datos del cliente.')
+    } finally {
+      setSavingEdit(false)
     }
   }
 
@@ -252,6 +335,14 @@ export default function Crm() {
                       </td>
                       <td className="py-4 px-6 sm:px-8">
                         <div className="flex justify-center items-center gap-2">
+                          {/* Editar Perfil */}
+                          <button
+                            onClick={() => setEditingCliente(c)}
+                            className="inline-flex items-center gap-1.5 bg-tienta-gold/10 text-tienta-goldDark hover:bg-tienta-gold hover:text-white border border-tienta-gold/25 px-3 py-1.5 rounded-full text-[10px] font-montserrat uppercase font-bold tracking-wider transition-all duration-300 cursor-pointer"
+                            title="Editar Datos de Socio"
+                          >
+                            <Edit size={11} /> Editar
+                          </button>
                           {/* Correo mailto */}
                           <a
                             href={`mailto:${c.email}?subject=ClubTienta%20-%20Novedades%20y%20Beneficios&body=Hola%20${c.nombre},%20te%20escribimos%20desde%20el%20ClubTienta%20para%20agradecerte%20tu%20fidelidad...`}
@@ -316,6 +407,129 @@ export default function Crm() {
         )}
       </div>
 
+      {/* Modal de Edición de Perfil */}
+      {editingCliente && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in text-left">
+          <div className="bg-white border border-black/10 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl animate-scale-up">
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <span className="text-[10px] font-montserrat uppercase tracking-[0.2em] text-tienta-goldDark font-extrabold">
+                  ClubTienta CRM
+                </span>
+                <h3 className="text-xl font-montserrat font-extrabold text-tienta-teal uppercase tracking-wider mt-0.5">
+                  Editar Datos de Socio
+                </h3>
+              </div>
+              <button
+                onClick={() => setEditingCliente(null)}
+                className="text-black/40 hover:text-black font-bold text-xl cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleGuardarEdicion} className="space-y-4">
+              
+              {/* Bloque Fijo: DNI y Email */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-tienta-crema/40 border border-black/5 p-4 rounded-2xl">
+                <div>
+                  <span className="block text-[9px] font-montserrat uppercase tracking-wider font-extrabold text-black/45 mb-1">
+                    DNI (No editable)
+                  </span>
+                  <span className="text-sm font-bold text-black/70 font-mono tracking-wide">
+                    {editingCliente.dni}
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-[9px] font-montserrat uppercase tracking-wider font-extrabold text-black/45 mb-1">
+                    Email (No editable)
+                  </span>
+                  <span className="text-sm font-bold text-black/70 font-mono truncate block max-w-full">
+                    {editingCliente.email}
+                  </span>
+                </div>
+              </div>
+
+              {/* Grid de Nombre y Apellido */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-montserrat uppercase tracking-wider font-extrabold text-tienta-teal mb-2">
+                    Nombre
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej. Juan"
+                    value={editNombre}
+                    onChange={(e) => setEditNombre(e.target.value)}
+                    className="input-tienta py-2.5 text-black font-semibold text-sm bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-montserrat uppercase tracking-wider font-extrabold text-tienta-teal mb-2">
+                    Apellido
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej. Pérez"
+                    value={editApellido}
+                    onChange={(e) => setEditApellido(e.target.value)}
+                    className="input-tienta py-2.5 text-black font-semibold text-sm bg-white"
+                  />
+                </div>
+              </div>
+
+              {/* Teléfono (WhatsApp) */}
+              <div>
+                <label className="block text-xs font-montserrat uppercase tracking-wider font-extrabold text-tienta-teal mb-2">
+                  WhatsApp (10 dígitos sin 0 ni 15)
+                </label>
+                <input
+                  type="tel"
+                  required
+                  placeholder="Ej. 3416123456"
+                  value={editTelefono}
+                  onChange={(e) => setEditTelefono(e.target.value)}
+                  className="input-tienta py-2.5 text-black font-semibold text-sm bg-white"
+                />
+              </div>
+
+              {/* Fecha de Nacimiento */}
+              <div>
+                <label className="block text-xs font-montserrat uppercase tracking-wider font-extrabold text-tienta-teal mb-2">
+                  Fecha de Nacimiento
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={editFechaNacimiento}
+                  onChange={(e) => setEditFechaNacimiento(e.target.value)}
+                  className="input-tienta py-2.5 text-black font-semibold text-sm bg-white"
+                />
+              </div>
+
+              {/* Botones de acción */}
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-black/5">
+                <button
+                  type="button"
+                  onClick={() => setEditingCliente(null)}
+                  className="btn-tienta-outline px-5 py-2.5 text-xs font-bold font-montserrat uppercase tracking-wider cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingEdit}
+                  className="btn-tienta-teal px-6 py-2.5 text-xs font-bold font-montserrat uppercase tracking-wider cursor-pointer disabled:opacity-55"
+                >
+                  {savingEdit ? 'Guardando...' : 'Guardar Cambios'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

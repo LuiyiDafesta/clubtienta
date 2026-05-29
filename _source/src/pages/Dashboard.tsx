@@ -55,6 +55,9 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [copied, setCopied] = useState(false)
+  
+  const [totalConsumido, setTotalConsumido] = useState(0)
+  const [limitePlatinum, setLimitePlatinum] = useState(20000)
 
   const handleCopyLink = () => {
     if (!cliente) return
@@ -96,6 +99,28 @@ export default function Dashboard() {
           .order('created_at', { ascending: false })
           .limit(8)
         if (txs) setHistorial(txs)
+
+        // 2.2 Obtener consumo acumulado en pesos
+        const { data: txImportes } = await supabase
+          .from('transacciones')
+          .select('importe')
+          .eq('cliente_id', session.user.id)
+          .eq('tipo', 'carga_compra')
+        
+        const sumImporte = txImportes 
+          ? txImportes.reduce((acc, curr) => acc + Number(curr.importe || 0), 0)
+          : 0
+        setTotalConsumido(sumImporte)
+
+        // 2.5 Obtener límites de consumo desde configuraciones
+        const { data: configData } = await supabase
+          .from('configuraciones')
+          .select('clave, valor')
+        
+        if (configData) {
+          const lp = configData.find(c => c.clave === 'limite_consumo_platinum')
+          if (lp) setLimitePlatinum(Number(lp.valor || 20000))
+        }
       }
 
       // 3. Obtener premios activos
@@ -227,6 +252,26 @@ export default function Dashboard() {
                 Caja Escaneable
               </span>
             </div>
+
+            {/* Barra de progreso Premium (Solo si es Gold) */}
+            {cliente.nivel === 'Gold' && (
+              <div className="mt-5 pt-4 border-t border-white/10 relative z-10 text-left">
+                <div className="flex justify-between items-center mb-1.5 text-[9px] font-montserrat uppercase font-extrabold tracking-wider text-[#fad08c]">
+                  <span>Progreso a Socio Platinum</span>
+                  <span>{Math.min(100, Math.floor((totalConsumido / limitePlatinum) * 100))}%</span>
+                </div>
+                <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden border border-white/5">
+                  <div 
+                    className="bg-gradient-to-r from-tienta-gold to-[#fad08c] h-full rounded-full transition-all duration-500" 
+                    style={{ width: `${Math.min(100, Math.floor((totalConsumido / limitePlatinum) * 100))}%` }}
+                  ></div>
+                </div>
+                <div className="flex justify-between items-center mt-1 text-[8px] font-bold font-montserrat uppercase tracking-wider text-white/75 leading-none">
+                  <span>Consumo: ${Math.floor(totalConsumido).toLocaleString('es-AR')}</span>
+                  <span>Faltan: ${Math.max(0, Math.floor(limitePlatinum - totalConsumido)).toLocaleString('es-AR')} para Platino</span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Progreso hacia el siguiente premio */}

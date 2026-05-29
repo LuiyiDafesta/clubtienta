@@ -45,9 +45,9 @@ begin
         raise exception 'Rol no válido: %', p_rol;
     end if;
 
-    -- Actualizar app_metadata en auth.users
+    -- Actualizar raw_app_meta_data en auth.users
     update auth.users
-    set app_metadata = jsonb_set(coalesce(app_metadata, '{}'::jsonb), '{role}', to_jsonb(p_rol))
+    set raw_app_meta_data = jsonb_set(coalesce(raw_app_meta_data, '{}'::jsonb), '{role}', to_jsonb(p_rol))
     where id = p_usuario_id;
     
     -- Sincronizar columna rol en profiles
@@ -82,7 +82,7 @@ begin
         raise exception 'Rol no válido. Debe ser cajero o admin.';
     end if;
 
-    -- 4. Actualizar auth.users (email, metadatos y app_metadata)
+    -- 4. Actualizar auth.users (email, metadatos y raw_app_meta_data)
     update auth.users
     set email = p_email,
         raw_user_meta_data = jsonb_set(
@@ -90,8 +90,8 @@ begin
             '{nombre}', 
             to_jsonb(p_nombre)
         ),
-        app_metadata = jsonb_set(
-            coalesce(app_metadata, '{}'::jsonb), 
+        raw_app_meta_data = jsonb_set(
+            coalesce(raw_app_meta_data, '{}'::jsonb), 
             '{role}', 
             to_jsonb(p_rol)
         )

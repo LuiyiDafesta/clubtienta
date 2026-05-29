@@ -746,55 +746,78 @@ export default function Admin() {
         </p>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-black/10 mb-8 space-x-6 overflow-x-auto">
+      {/* Visual Navigation Dashboard Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
         <button
           onClick={() => setActiveTab('config')}
-          className={`pb-4 text-sm font-montserrat uppercase tracking-wider font-bold cursor-pointer transition-all shrink-0 ${
-            activeTab === 'config' ? 'border-b-2 border-tienta-gold text-tienta-teal' : 'text-black/60 hover:text-black/90'
+          className={`flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl text-[10px] font-montserrat uppercase tracking-wider font-extrabold transition-all duration-300 border cursor-pointer shadow-xs ${
+            activeTab === 'config' 
+              ? 'bg-tienta-teal text-white border-tienta-teal shadow-[0_4px_12px_rgba(2,97,99,0.2)] scale-102 font-black' 
+              : 'bg-white border-black/5 hover:bg-tienta-crema/40 text-black/60 hover:text-black/85 font-bold'
           }`}
         >
-          <span className="flex items-center gap-2"><Settings size={16} /> Configuración</span>
+          <Settings size={14} className={activeTab === 'config' ? 'text-tienta-gold' : 'text-black/40'} />
+          <span className="truncate">Configuración</span>
         </button>
+
         <button
           onClick={() => setActiveTab('premios')}
-          className={`pb-4 text-sm font-montserrat uppercase tracking-wider font-bold cursor-pointer transition-all shrink-0 ${
-            activeTab === 'premios' ? 'border-b-2 border-tienta-gold text-tienta-teal' : 'text-black/60 hover:text-black/90'
+          className={`flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl text-[10px] font-montserrat uppercase tracking-wider font-extrabold transition-all duration-300 border cursor-pointer shadow-xs ${
+            activeTab === 'premios' 
+              ? 'bg-tienta-teal text-white border-tienta-teal shadow-[0_4px_12px_rgba(2,97,99,0.2)] scale-102 font-black' 
+              : 'bg-white border-black/5 hover:bg-tienta-crema/40 text-black/60 hover:text-black/85 font-bold'
           }`}
         >
-          <span className="flex items-center gap-2"><Gift size={16} /> Catálogo de Premios</span>
+          <Gift size={14} className={activeTab === 'premios' ? 'text-tienta-gold' : 'text-black/40'} />
+          <span className="truncate">Premios</span>
         </button>
+
         <button
           onClick={() => setActiveTab('promos')}
-          className={`pb-4 text-sm font-montserrat uppercase tracking-wider font-bold cursor-pointer transition-all shrink-0 ${
-            activeTab === 'promos' ? 'border-b-2 border-tienta-gold text-tienta-teal' : 'text-black/60 hover:text-black/90'
+          className={`flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl text-[10px] font-montserrat uppercase tracking-wider font-extrabold transition-all duration-300 border cursor-pointer shadow-xs ${
+            activeTab === 'promos' 
+              ? 'bg-tienta-teal text-white border-tienta-teal shadow-[0_4px_12px_rgba(2,97,99,0.2)] scale-102 font-black' 
+              : 'bg-white border-black/5 hover:bg-tienta-crema/40 text-black/60 hover:text-black/85 font-bold'
           }`}
         >
-          <span className="flex items-center gap-2"><Percent size={16} /> Promociones</span>
+          <Percent size={14} className={activeTab === 'promos' ? 'text-tienta-gold' : 'text-black/40'} />
+          <span className="truncate">Promociones</span>
         </button>
+
         <button
           onClick={() => setActiveTab('auditoria')}
-          className={`pb-4 text-sm font-montserrat uppercase tracking-wider font-bold cursor-pointer transition-all shrink-0 ${
-            activeTab === 'auditoria' ? 'border-b-2 border-tienta-gold text-tienta-teal' : 'text-black/60 hover:text-black/90'
+          className={`flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl text-[10px] font-montserrat uppercase tracking-wider font-extrabold transition-all duration-300 border cursor-pointer shadow-xs ${
+            activeTab === 'auditoria' 
+              ? 'bg-tienta-teal text-white border-tienta-teal shadow-[0_4px_12px_rgba(2,97,99,0.2)] scale-102 font-black' 
+              : 'bg-white border-black/5 hover:bg-tienta-crema/40 text-black/60 hover:text-black/85 font-bold'
           }`}
         >
-          <span className="flex items-center gap-2"><ShieldCheck size={16} /> Auditoría General</span>
+          <ShieldCheck size={14} className={activeTab === 'auditoria' ? 'text-tienta-gold' : 'text-black/40'} />
+          <span className="truncate">Auditoría</span>
         </button>
+
         <button
           onClick={() => setActiveTab('staff')}
-          className={`pb-4 text-sm font-montserrat uppercase tracking-wider font-bold cursor-pointer transition-all shrink-0 ${
-            activeTab === 'staff' ? 'border-b-2 border-tienta-gold text-tienta-teal' : 'text-black/60 hover:text-black/90'
+          className={`flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl text-[10px] font-montserrat uppercase tracking-wider font-extrabold transition-all duration-300 border cursor-pointer shadow-xs ${
+            activeTab === 'staff' 
+              ? 'bg-tienta-teal text-white border-tienta-teal shadow-[0_4px_12px_rgba(2,97,99,0.2)] scale-102 font-black' 
+              : 'bg-white border-black/5 hover:bg-tienta-crema/40 text-black/60 hover:text-black/85 font-bold'
           }`}
         >
-          <span className="flex items-center gap-2"><Layers size={16} /> Operadores y Staff</span>
+          <Layers size={14} className={activeTab === 'staff' ? 'text-tienta-gold' : 'text-black/40'} />
+          <span className="truncate">Personal</span>
         </button>
+
         <button
           onClick={() => setActiveTab('metricas')}
-          className={`pb-4 text-sm font-montserrat uppercase tracking-wider font-bold cursor-pointer transition-all shrink-0 ${
-            activeTab === 'metricas' ? 'border-b-2 border-tienta-gold text-tienta-teal' : 'text-black/60 hover:text-black/90'
+          className={`flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl text-[10px] font-montserrat uppercase tracking-wider font-extrabold transition-all duration-300 border cursor-pointer shadow-xs ${
+            activeTab === 'metricas' 
+              ? 'bg-tienta-teal text-white border-tienta-teal shadow-[0_4px_12px_rgba(2,97,99,0.2)] scale-102 font-black' 
+              : 'bg-white border-black/5 hover:bg-tienta-crema/40 text-black/60 hover:text-black/85 font-bold'
           }`}
         >
-          <span className="flex items-center gap-2"><BarChart3 size={16} /> Estadísticas de Caja</span>
+          <BarChart3 size={14} className={activeTab === 'metricas' ? 'text-tienta-gold' : 'text-black/40'} />
+          <span className="truncate">Estadísticas</span>
         </button>
       </div>
 

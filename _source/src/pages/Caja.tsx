@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { Search, IceCream, RefreshCw, ShoppingCart, Gift, FileText, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Search, IceCream, RefreshCw, ShoppingCart, Gift, FileText, CheckCircle2, AlertCircle, Filter, ChevronLeft, ChevronRight } from 'lucide-react'
 
 // Interfaces
 interface Cliente {
@@ -52,6 +52,10 @@ export default function Caja() {
   // Historial del Cliente
   const [historial, setHistorial] = useState<Transaccion[]>([])
   const [loadingHistorial, setLoadingHistorial] = useState(false)
+  const [filterTipoCaja, setFilterTipoCaja] = useState<string>('todos')
+  const [searchQueryCaja, setSearchQueryCaja] = useState('')
+  const [paginaCaja, setPaginaCaja] = useState(0)
+  const itemsPorPaginaCaja = 5
   
   // Configuración de Puntos
   const [valorPunto, setValorPunto] = useState<number>(200) // $200 = 1 punto por defecto
@@ -279,6 +283,9 @@ export default function Caja() {
     setDniBusqueda('')
     setErrorSearch(null)
     setHistorial([])
+    setFilterTipoCaja('todos')
+    setSearchQueryCaja('')
+    setPaginaCaja(0)
   }
 
   const fetchHistorialCliente = async (clienteId: string) => {
@@ -291,7 +298,6 @@ export default function Caja() {
       `)
       .eq('cliente_id', clienteId)
       .order('created_at', { ascending: false })
-      .limit(10)
     
     if (!error && data) {
       setHistorial(data as any)
@@ -466,6 +472,28 @@ export default function Caja() {
     if (cliente?.nivel === 'Gold' && bonoGold > 0) pts = Math.floor(pts * (1 + bonoGold / 100))
     return pts
   }
+
+  // Filtrar y paginar el historial del socio en caja
+  const historialFiltradoCaja = historial.filter(tr => {
+    const matchesTipo = 
+      filterTipoCaja === 'todos' || 
+      (filterTipoCaja === 'cargas' && tr.puntos > 0) || 
+      (filterTipoCaja === 'canjes' && tr.puntos < 0)
+
+    const cleanSearch = searchQueryCaja.toLowerCase().trim()
+    const matchesSearch = 
+      !cleanSearch || 
+      tr.detalle.toLowerCase().includes(cleanSearch) || 
+      (tr.ticket_factura && tr.ticket_factura.toLowerCase().includes(cleanSearch)) ||
+      (tr.tipo === 'carga_compra' ? 'compra' : tr.tipo === 'carga_manual' ? 'cargas' : 'canje').includes(cleanSearch)
+
+    return matchesTipo && matchesSearch
+  })
+
+  const totalItemsCaja = historialFiltradoCaja.length
+  const startIndexCaja = paginaCaja * itemsPorPaginaCaja
+  const endIndexCaja = startIndexCaja + itemsPorPaginaCaja
+  const paginatedHistorialCaja = historialFiltradoCaja.slice(startIndexCaja, endIndexCaja)
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -777,71 +805,173 @@ export default function Caja() {
             </div>
 
             {/* Historial Reciente de Operaciones */}
-            <div className="bg-white border border-black/5 rounded-3xl p-6 sm:p-8 shadow-sm text-left">
-              <h3 className="text-lg font-montserrat font-extrabold tracking-wider text-tienta-teal mb-6 uppercase flex items-center gap-2">
-                Historial Reciente (Últimos 10 movimientos)
-              </h3>
+            <div className="bg-white border border-black/5 rounded-3xl shadow-sm overflow-hidden text-left">
+              
+              {/* Barra superior de herramientas del historial: Buscador y Filtros */}
+              <div className="p-5 sm:px-8 border-b border-black/5 bg-tienta-crema/10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="relative flex-1 max-w-xs w-full">
+                  <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-black/50">
+                    <Search size={13} />
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Buscar en historial..."
+                    value={searchQueryCaja}
+                    onChange={(e) => {
+                      setSearchQueryCaja(e.target.value)
+                      setPaginaCaja(0)
+                    }}
+                    className="input-tienta pl-10 py-1.5 text-xs font-semibold w-full bg-white h-[36px]"
+                  />
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="flex items-center gap-1 text-[10px] font-montserrat uppercase tracking-wider font-extrabold text-tienta-teal shrink-0">
+                    <Filter size={12} className="text-tienta-gold" /> Filtrar:
+                  </span>
+                  
+                  <div className="flex gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFilterTipoCaja('todos')
+                        setPaginaCaja(0)
+                      }}
+                      className={`px-3 py-1 rounded-full text-[10px] font-bold font-montserrat tracking-wider uppercase transition-colors duration-200 cursor-pointer ${
+                        filterTipoCaja === 'todos' 
+                          ? 'bg-tienta-teal text-white shadow-sm' 
+                          : 'bg-black/5 text-black/65 hover:bg-black/10'
+                      }`}
+                    >
+                      Todos
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFilterTipoCaja('cargas')
+                        setPaginaCaja(0)
+                      }}
+                      className={`px-3 py-1 rounded-full text-[10px] font-bold font-montserrat tracking-wider uppercase transition-colors duration-200 cursor-pointer ${
+                        filterTipoCaja === 'cargas' 
+                          ? 'bg-green-600 text-white shadow-sm' 
+                          : 'bg-black/5 text-black/65 hover:bg-black/10'
+                      }`}
+                    >
+                      Cargas
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFilterTipoCaja('canjes')
+                        setPaginaCaja(0)
+                      }}
+                      className={`px-3 py-1 rounded-full text-[10px] font-bold font-montserrat tracking-wider uppercase transition-colors duration-200 cursor-pointer ${
+                        filterTipoCaja === 'canjes' 
+                          ? 'bg-red-500 text-white shadow-sm' 
+                          : 'bg-black/5 text-black/65 hover:bg-black/10'
+                      }`}
+                    >
+                      Canjes
+                    </button>
+                  </div>
+                </div>
+              </div>
 
               {loadingHistorial ? (
-                <div className="flex items-center justify-center py-8 gap-2 text-black/70 text-sm font-semibold">
+                <div className="flex items-center justify-center py-12 gap-2 text-black/70 text-sm font-semibold">
                   <RefreshCw size={16} className="animate-spin" /> Cargando historial...
                 </div>
-              ) : historial.length === 0 ? (
-                <p className="text-sm text-black/50 py-8 text-center font-medium">Este cliente aún no registra transacciones.</p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm font-lato text-left border-collapse">
-                    <thead>
-                      <tr className="border-b border-black/10 text-black/70 font-montserrat uppercase text-xs tracking-wider">
-                        <th className="pb-3 font-extrabold">Fecha</th>
-                        <th className="pb-3 font-extrabold">Operación / Detalle</th>
-                        <th className="pb-3 font-extrabold">Ticket/Ref</th>
-                        <th className="pb-3 font-extrabold text-right">Importe</th>
-                        <th className="pb-3 font-extrabold text-right">Puntos</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-black/5 font-semibold text-black/85">
-                      {historial.map((tr) => (
-                        <tr key={tr.id} className="hover:bg-tienta-crema/20">
-                          <td className="py-3 text-black/70 text-xs">
-                            {new Date(tr.created_at).toLocaleDateString('es-AR', {
-                              day: '2-digit',
-                              month: '2-digit',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </td>
-                          <td className="py-3">
-                            <span className="font-bold block text-black">
-                              {tr.tipo === 'carga_compra' ? 'Compra' : tr.tipo === 'carga_manual' ? 'Carga Manual' : 'Canje'}
-                            </span>
-                            <span className="text-xs text-black/65 block mt-0.5 font-medium">{tr.detalle}</span>
-                            {tr.creador && (
-                              <span className="text-[10px] text-tienta-teal font-extrabold block mt-0.5">
-                                👤 Op: {tr.creador.nombre} ({tr.creador.email.split('@')[0]})
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-3 text-black/65 font-bold text-xs">
-                            {tr.ticket_factura || '-'}
-                          </td>
-                          <td className="py-3 text-right font-extrabold text-black/80">
-                            {tr.importe ? `$${Number(tr.importe).toLocaleString('es-AR')}` : '-'}
-                          </td>
-                          <td className={`py-3 text-right font-bold font-montserrat text-base ${
-                            tr.puntos > 0 ? 'text-green-600' : 'text-red-500'
-                          }`}>
-                            {tr.puntos > 0 ? `+${tr.puntos}` : tr.puntos}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              ) : totalItemsCaja === 0 ? (
+                <div className="p-12 text-center">
+                  <p className="text-sm font-semibold text-black/50">No hay movimientos que coincidan con la búsqueda.</p>
                 </div>
+              ) : (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm font-lato text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-black/10 text-black/70 font-montserrat uppercase text-xs tracking-wider">
+                          <th className="pb-3 px-4 font-extrabold">Fecha</th>
+                          <th className="pb-3 px-4 font-extrabold">Operación / Detalle</th>
+                          <th className="pb-3 px-4 font-extrabold">Ticket/Ref</th>
+                          <th className="pb-3 px-4 text-right font-extrabold">Importe</th>
+                          <th className="pb-3 px-4 text-right font-extrabold">Puntos</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-black/5 font-semibold text-black/85">
+                        {paginatedHistorialCaja.map((tr) => (
+                          <tr key={tr.id} className="hover:bg-tienta-crema/20">
+                            <td className="py-3 px-4 text-black/70 text-xs">
+                              {new Date(tr.created_at).toLocaleDateString('es-AR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className="font-bold block text-black">
+                                {tr.tipo === 'carga_compra' ? 'Compra' : tr.tipo === 'carga_manual' ? 'Carga Manual' : 'Canje'}
+                              </span>
+                              <span className="text-xs text-black/65 block mt-0.5 font-medium">{tr.detalle}</span>
+                              {tr.creador && (
+                                <span className="text-[10px] text-tienta-teal font-extrabold block mt-0.5">
+                                  👤 Op: {tr.creador.nombre} ({tr.creador.email.split('@')[0]})
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4 text-black/65 font-bold text-xs">
+                              {tr.ticket_factura || '-'}
+                            </td>
+                            <td className="py-3 px-4 text-right font-extrabold text-black/80">
+                              {tr.importe ? `$${Number(tr.importe).toLocaleString('es-AR')}` : '-'}
+                            </td>
+                            <td className={`py-3 px-4 text-right font-bold font-montserrat text-base ${
+                              tr.puntos > 0 ? 'text-green-600' : 'text-red-500'
+                            }`}>
+                              {tr.puntos > 0 ? `+${tr.puntos}` : tr.puntos}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  
+                  {totalItemsCaja > itemsPorPaginaCaja && (
+                    <div className="flex items-center justify-between border-t border-black/5 p-4 sm:px-6">
+                      <span className="text-[11px] text-black/60 font-semibold font-lato">
+                        Mostrando {startIndexCaja + 1} - {Math.min(endIndexCaja, totalItemsCaja)} de {totalItemsCaja} registros
+                      </span>
+                      
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setPaginaCaja(p => Math.max(0, p - 1))}
+                          disabled={paginaCaja === 0}
+                          className="p-1.5 rounded-full border border-black/10 hover:bg-black/5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors duration-200"
+                          title="Página Anterior"
+                        >
+                          <ChevronLeft size={14} />
+                        </button>
+                        <span className="text-xs font-bold font-montserrat text-tienta-teal px-1.5">
+                          {paginaCaja + 1}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setPaginaCaja(p => ((p + 1) * itemsPorPaginaCaja < totalItemsCaja ? p + 1 : p))}
+                          disabled={(paginaCaja + 1) * itemsPorPaginaCaja >= totalItemsCaja}
+                          className="p-1.5 rounded-full border border-black/10 hover:bg-black/5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors duration-200"
+                          title="Página Siguiente"
+                        >
+                          <ChevronRight size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
-
           </div>
 
         </div>

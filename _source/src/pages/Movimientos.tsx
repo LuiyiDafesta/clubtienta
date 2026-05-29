@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useNavigate, Link } from 'react-router-dom'
-import { ClipboardList, ArrowLeft, RefreshCw, Filter, Calendar, Award, DollarSign } from 'lucide-react'
+import { ClipboardList, ArrowLeft, RefreshCw, Filter, Calendar, Award, DollarSign, Search, ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface Transaccion {
   id: string
@@ -19,6 +19,9 @@ export default function Movimientos() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [filterTipo, setFilterTipo] = useState<string>('todos')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [currentPage, setCurrentPage] = useState(0)
+  const itemsPerPage = 10
 
   useEffect(() => {
     fetchMovimientos()
@@ -55,13 +58,27 @@ export default function Movimientos() {
     setRefreshing(false)
   }
 
-  // Filtrar el historial según el tipo seleccionado
+  // Filtrar el historial según el tipo seleccionado y la búsqueda por texto
   const historialFiltrado = historial.filter(tx => {
-    if (filterTipo === 'todos') return true
-    if (filterTipo === 'cargas') return tx.puntos > 0
-    if (filterTipo === 'canjes') return tx.puntos < 0
-    return true
+    const matchesTipo = 
+      filterTipo === 'todos' || 
+      (filterTipo === 'cargas' && tx.puntos > 0) || 
+      (filterTipo === 'canjes' && tx.puntos < 0)
+
+    const cleanSearch = searchQuery.toLowerCase().trim()
+    const matchesSearch = 
+      !cleanSearch || 
+      tx.detalle.toLowerCase().includes(cleanSearch) || 
+      (tx.ticket_factura && tx.ticket_factura.toLowerCase().includes(cleanSearch)) ||
+      (tx.tipo === 'carga_compra' ? 'compra' : tx.tipo === 'carga_manual' ? 'bono carga' : 'canje').includes(cleanSearch)
+
+    return matchesTipo && matchesSearch
   })
+
+  const totalItems = historialFiltrado.length
+  const startIndex = currentPage * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedHistorial = historialFiltrado.slice(startIndex, endIndex)
 
   if (loading) {
     return (
@@ -151,43 +168,70 @@ export default function Movimientos() {
       {/* Contenedor del Listado */}
       <div className="bg-white border border-black/5 rounded-3xl shadow-sm overflow-hidden">
         
-        {/* Filtros */}
-        <div className="p-5 sm:px-8 border-b border-black/5 bg-tienta-crema/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-xs font-montserrat uppercase tracking-wider font-extrabold text-tienta-teal">
-            <Filter size={14} className="text-tienta-gold" /> Filtrar Por:
+        {/* Barra superior de herramientas: Buscador y Filtros */}
+        <div className="p-5 sm:px-8 border-b border-black/5 bg-tienta-crema/10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="relative flex-1 max-w-md w-full">
+            <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-black/50">
+              <Search size={14} />
+            </span>
+            <input
+              type="text"
+              placeholder="Buscar por detalle o nro de ticket..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value)
+                setCurrentPage(0)
+              }}
+              className="input-tienta pl-11 py-2 text-sm font-semibold w-full bg-white"
+            />
           </div>
-          
-          <div className="flex gap-2">
-            <button
-              onClick={() => setFilterTipo('todos')}
-              className={`px-4 py-1.5 rounded-full text-xs font-bold font-montserrat tracking-wider uppercase transition-colors duration-200 cursor-pointer ${
-                filterTipo === 'todos' 
-                  ? 'bg-tienta-teal text-white shadow-sm' 
-                  : 'bg-black/5 text-black/65 hover:bg-black/10'
-              }`}
-            >
-              Todos
-            </button>
-            <button
-              onClick={() => setFilterTipo('cargas')}
-              className={`px-4 py-1.5 rounded-full text-xs font-bold font-montserrat tracking-wider uppercase transition-colors duration-200 cursor-pointer ${
-                filterTipo === 'cargas' 
-                  ? 'bg-green-600 text-white shadow-sm' 
-                  : 'bg-black/5 text-black/65 hover:bg-black/10'
-              }`}
-            >
-              Cargas
-            </button>
-            <button
-              onClick={() => setFilterTipo('canjes')}
-              className={`px-4 py-1.5 rounded-full text-xs font-bold font-montserrat tracking-wider uppercase transition-colors duration-200 cursor-pointer ${
-                filterTipo === 'canjes' 
-                  ? 'bg-red-500 text-white shadow-sm' 
-                  : 'bg-black/5 text-black/65 hover:bg-black/10'
-              }`}
-            >
-              Canjes
-            </button>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="flex items-center gap-1.5 text-xs font-montserrat uppercase tracking-wider font-extrabold text-tienta-teal shrink-0">
+              <Filter size={14} className="text-tienta-gold" /> Filtrar:
+            </span>
+            
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setFilterTipo('todos')
+                  setCurrentPage(0)
+                }}
+                className={`px-4 py-1.5 rounded-full text-xs font-bold font-montserrat tracking-wider uppercase transition-colors duration-200 cursor-pointer ${
+                  filterTipo === 'todos' 
+                    ? 'bg-tienta-teal text-white shadow-sm' 
+                    : 'bg-black/5 text-black/65 hover:bg-black/10'
+                }`}
+              >
+                Todos
+              </button>
+              <button
+                onClick={() => {
+                  setFilterTipo('cargas')
+                  setCurrentPage(0)
+                }}
+                className={`px-4 py-1.5 rounded-full text-xs font-bold font-montserrat tracking-wider uppercase transition-colors duration-200 cursor-pointer ${
+                  filterTipo === 'cargas' 
+                    ? 'bg-green-600 text-white shadow-sm' 
+                    : 'bg-black/5 text-black/65 hover:bg-black/10'
+                }`}
+              >
+                Cargas
+              </button>
+              <button
+                onClick={() => {
+                  setFilterTipo('canjes')
+                  setCurrentPage(0)
+                }}
+                className={`px-4 py-1.5 rounded-full text-xs font-bold font-montserrat tracking-wider uppercase transition-colors duration-200 cursor-pointer ${
+                  filterTipo === 'canjes' 
+                    ? 'bg-red-500 text-white shadow-sm' 
+                    : 'bg-black/5 text-black/65 hover:bg-black/10'
+                }`}
+              >
+                Canjes
+              </button>
+            </div>
           </div>
         </div>
 
@@ -198,59 +242,90 @@ export default function Movimientos() {
             <p className="text-sm font-semibold text-black/50">No hay movimientos registrados para este filtro.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-tienta-crema/20 border-b border-black/5 text-[11px] font-montserrat uppercase tracking-wider text-black/65 font-extrabold">
-                  <th className="py-4 px-6 sm:px-8">Fecha y Hora</th>
-                  <th className="py-4 px-6">Detalle de Operación</th>
-                  <th className="py-4 px-6 text-right">Importe Gastado</th>
-                  <th className="py-4 px-6 sm:px-8 text-right">Puntos</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-black/5">
-                {historialFiltrado.map((tx) => (
-                  <tr key={tx.id} className="hover:bg-tienta-crema/5 transition-colors duration-150">
-                    {/* Fecha y Hora formateada */}
-                    <td className="py-4.5 px-6 sm:px-8 text-xs font-semibold text-black/75 font-mono">
-                      {new Date(tx.created_at).toLocaleString('es-AR', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </td>
-                    
-                    {/* Detalle */}
-                    <td className="py-4.5 px-6">
-                      <span className="text-sm font-bold text-black block">
-                        {tx.detalle}
-                      </span>
-                      <span className="text-[10px] uppercase font-montserrat font-bold tracking-wider text-black/50 mt-0.5 inline-block">
-                        {tx.tipo === 'carga_compra' ? '🛒 Compra' : tx.tipo === 'carga_manual' ? '⭐ Bono/Carga' : '🎁 Canje'}
-                        {tx.ticket_factura ? ` • Ticket #${tx.ticket_factura}` : ''}
-                      </span>
-                    </td>
-                    
-                    {/* Importe Gastado */}
-                    <td className="py-4.5 px-6 text-right text-sm font-bold text-black/85">
-                      {tx.importe ? `$${Number(tx.importe).toLocaleString('es-AR')}` : '-'}
-                    </td>
-                    
-                    {/* Puntos */}
-                    <td className="py-4.5 px-6 sm:px-8 text-right">
-                      <span className={`text-base font-extrabold font-montserrat ${
-                        tx.puntos > 0 ? 'text-green-600' : 'text-red-500'
-                      }`}>
-                        {tx.puntos > 0 ? `+${tx.puntos}` : tx.puntos}
-                      </span>
-                    </td>
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-tienta-crema/20 border-b border-black/5 text-[11px] font-montserrat uppercase tracking-wider text-black/65 font-extrabold">
+                    <th className="py-4 px-6 sm:px-8">Fecha y Hora</th>
+                    <th className="py-4 px-6">Detalle de Operación</th>
+                    <th className="py-4 px-6 text-right">Importe Gastado</th>
+                    <th className="py-4 px-6 sm:px-8 text-right">Puntos</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-black/5">
+                  {paginatedHistorial.map((tx) => (
+                    <tr key={tx.id} className="hover:bg-tienta-crema/5 transition-colors duration-150">
+                      {/* Fecha y Hora formateada */}
+                      <td className="py-4.5 px-6 sm:px-8 text-xs font-semibold text-black/75 font-mono">
+                        {new Date(tx.created_at).toLocaleString('es-AR', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </td>
+                      
+                      {/* Detalle */}
+                      <td className="py-4.5 px-6">
+                        <span className="text-sm font-bold text-black block">
+                          {tx.detalle}
+                        </span>
+                        <span className="text-[10px] uppercase font-montserrat font-bold tracking-wider text-black/50 mt-0.5 inline-block">
+                          {tx.tipo === 'carga_compra' ? '🛒 Compra' : tx.tipo === 'carga_manual' ? '⭐ Bono/Carga' : '🎁 Canje'}
+                          {tx.ticket_factura ? ` • Ticket #${tx.ticket_factura}` : ''}
+                        </span>
+                      </td>
+                      
+                      {/* Importe Gastado */}
+                      <td className="py-4.5 px-6 text-right text-sm font-bold text-black/85">
+                        {tx.importe ? `$${Number(tx.importe).toLocaleString('es-AR')}` : '-'}
+                      </td>
+                      
+                      {/* Puntos */}
+                      <td className="py-4.5 px-6 sm:px-8 text-right">
+                        <span className={`text-base font-extrabold font-montserrat ${
+                          tx.puntos > 0 ? 'text-green-600' : 'text-red-500'
+                        }`}>
+                          {tx.puntos > 0 ? `+${tx.puntos}` : tx.puntos}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {totalItems > itemsPerPage && (
+              <div className="flex items-center justify-between border-t border-black/5 p-5 sm:px-8">
+                <span className="text-xs text-black/60 font-semibold font-lato">
+                  Mostrando del {startIndex + 1} al {Math.min(endIndex, totalItems)} de {totalItems} movimientos
+                </span>
+                
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
+                    disabled={currentPage === 0}
+                    className="p-2 rounded-full border border-black/10 hover:bg-black/5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors duration-200"
+                    title="Página Anterior"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+                  <span className="text-sm font-bold font-montserrat text-tienta-teal px-2">
+                    {currentPage + 1}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage(p => ((p + 1) * itemsPerPage < totalItems ? p + 1 : p))}
+                    disabled={(currentPage + 1) * itemsPerPage >= totalItems}
+                    className="p-2 rounded-full border border-black/10 hover:bg-black/5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors duration-200"
+                    title="Página Siguiente"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 

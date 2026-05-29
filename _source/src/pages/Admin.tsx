@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { 
   Settings, Gift, Percent, ShieldCheck, Plus, Trash2, 
-  Calendar, RefreshCw, Layers, Edit, BarChart3
+  Calendar, RefreshCw, Layers, Edit, BarChart3,
+  ChevronLeft, ChevronRight
 } from 'lucide-react'
 
 // Interfaces
@@ -158,6 +159,8 @@ export default function Admin() {
   const [filtroDni, setFiltroDni] = useState('')
   const [filtroTipo, setFiltroTipo] = useState('')
   const [filtroTicket, setFiltroTicket] = useState('')
+  const [auditoriaPage, setAuditoriaPage] = useState(0)
+  const auditoriaItemsPerPage = 10
 
   // --- METRICAS ESTADOS ---
   interface CajeroMetrica {
@@ -774,6 +777,7 @@ export default function Admin() {
   // --- 4. AUDITORÍA LOGICA ---
   const fetchAuditoria = async () => {
     setLoadingAuditoria(true)
+    setAuditoriaPage(0)
     try {
       let queryBuilder = supabase
         .from('transacciones')
@@ -1618,7 +1622,8 @@ export default function Admin() {
           ) : auditorias.length === 0 ? (
             <p className="text-sm text-black/50 py-16 text-center">No se encontraron movimientos que coincidan con los filtros.</p>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+              <div className="overflow-x-auto">
               <table className="w-full text-sm font-lato text-left border-collapse">
                 <thead>
                   <tr className="border-b border-black/10 text-black/70 font-montserrat uppercase text-xs tracking-wider">
@@ -1633,7 +1638,7 @@ export default function Admin() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-black/5 font-semibold text-black/85">
-                  {auditorias.map((tr) => (
+                  {auditorias.slice(auditoriaPage * auditoriaItemsPerPage, (auditoriaPage + 1) * auditoriaItemsPerPage).map((tr) => (
                     <tr key={tr.id} className="hover:bg-tienta-crema/20">
                       <td className="py-3.5 text-black/70">
                         {new Date(tr.created_at).toLocaleString('es-AR', {
@@ -1687,7 +1692,36 @@ export default function Admin() {
                 </tbody>
               </table>
             </div>
-          )}
+            {auditorias.length > auditoriaItemsPerPage && (
+              <div className="flex items-center justify-between border-t border-black/5 p-5 sm:px-8">
+                <span className="text-xs text-black/60 font-semibold font-lato">
+                  Mostrando del {auditoriaPage * auditoriaItemsPerPage + 1} al {Math.min((auditoriaPage + 1) * auditoriaItemsPerPage, auditorias.length)} de {auditorias.length} movimientos
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setAuditoriaPage(p => Math.max(0, p - 1))}
+                    disabled={auditoriaPage === 0}
+                    className="p-2 rounded-full border border-black/10 hover:bg-black/5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors duration-200"
+                    title="Página Anterior"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+                  <span className="text-sm font-bold font-montserrat text-tienta-teal px-2">
+                    {auditoriaPage + 1}
+                  </span>
+                  <button
+                    onClick={() => setAuditoriaPage(p => ((p + 1) * auditoriaItemsPerPage < auditorias.length ? p + 1 : p))}
+                    disabled={(auditoriaPage + 1) * auditoriaItemsPerPage >= auditorias.length}
+                    className="p-2 rounded-full border border-black/10 hover:bg-black/5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors duration-200"
+                    title="Página Siguiente"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
         </div>
       )}
 

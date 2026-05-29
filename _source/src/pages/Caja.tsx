@@ -32,6 +32,11 @@ interface Transaccion {
   ticket_factura: string | null
   detalle: string
   created_at: string
+  creador?: {
+    nombre: string
+    apellido: string
+    email: string
+  } | null
 }
 
 export default function Caja() {
@@ -125,13 +130,16 @@ export default function Caja() {
     setLoadingHistorial(true)
     const { data, error } = await supabase
       .from('transacciones')
-      .select('*')
+      .select(`
+        id, tipo, importe, puntos, ticket_factura, detalle, created_at,
+        creador:profiles!creado_por(nombre, apellido, email)
+      `)
       .eq('cliente_id', clienteId)
       .order('created_at', { ascending: false })
       .limit(10)
     
     if (!error && data) {
-      setHistorial(data)
+      setHistorial(data as any)
     }
     setLoadingHistorial(false)
   }
@@ -334,8 +342,10 @@ export default function Caja() {
       {cliente && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
-          {/* Ficha de Datos del Cliente */}
+          {/* Columna Izquierda: Ficha de Datos y Catálogo de Premios */}
           <div className="lg:col-span-1 space-y-6">
+            
+            {/* Ficha de Datos del Cliente */}
             <div className="bg-tienta-teal text-white border border-white/5 rounded-3xl p-6 shadow-md relative overflow-hidden glow-gold">
               {/* Elemento de diseño de fondo */}
               <div className="absolute -bottom-16 -right-16 w-48 h-48 rounded-full bg-tienta-gold/10 blur-2xl"></div>
@@ -377,142 +387,21 @@ export default function Caja() {
               </div>
             </div>
 
-            {/* Operación: Cargar Compra */}
+            {/* Catálogo de Premios y Canjes */}
             <div className="bg-white border border-black/5 rounded-3xl p-6 shadow-sm text-left">
-              <div className="flex items-center gap-2 mb-4">
-                <ShoppingCart className="text-tienta-teal" size={18} />
-                <h4 className="font-montserrat font-extrabold text-sm tracking-wider uppercase text-tienta-teal">
-                  Carga por Compra
-                </h4>
-              </div>
-
-              {successCompra && (
-                <div className="mb-4 p-3 rounded-xl bg-green-50 border border-green-100 text-green-600 text-xs flex items-center gap-2">
-                  <CheckCircle2 size={14} />
-                  <span>Carga realizada con éxito</span>
-                </div>
-              )}
-
-              <form onSubmit={handleCargarCompra} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
-                    Importe de la Compra ($)
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    placeholder="Ej. 10000"
-                    value={importeCompra}
-                    onChange={(e) => setImporteCompra(e.target.value)}
-                    className="input-tienta py-2 text-black font-semibold"
-                  />
-                  {importeCompra && (
-                    <span className="text-xs text-tienta-goldDark font-extrabold mt-1.5 block tracking-wide">
-                      ⚡ Sumará {previewPuntos()} puntos {cliente.nivel !== 'Standard' && `(Con bono de nivel ${cliente.nivel})`}
-                    </span>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
-                    Número de Ticket / Factura
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ej. T-002-12345"
-                    value={ticketCompra}
-                    onChange={(e) => setTicketCompra(e.target.value)}
-                    className="input-tienta py-2 text-black font-semibold"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loadingCompra}
-                  className="w-full btn-tienta-teal py-3 text-sm font-bold tracking-wider cursor-pointer"
-                >
-                  {loadingCompra ? 'Procesando...' : 'Cargar Puntos'}
-                </button>
-              </form>
-            </div>
-
-            {/* Operación: Carga Manual */}
-            <div className="bg-white border border-black/5 rounded-3xl p-6 shadow-sm text-left">
-              <div className="flex items-center gap-2 mb-4">
-                <FileText className="text-tienta-goldDark" size={18} />
-                <h4 className="font-montserrat font-extrabold text-sm tracking-wider uppercase text-tienta-goldDark">
-                  Carga Manual / Especial
-                </h4>
-              </div>
-
-              {successManual && (
-                <div className="mb-4 p-3 rounded-xl bg-green-50 border border-green-100 text-green-600 text-xs flex items-center gap-2">
-                  <CheckCircle2 size={14} />
-                  <span>Ajuste aplicado con éxito</span>
-                </div>
-              )}
-
-              <form onSubmit={handleCargarManual} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
-                    Puntos a Asignar
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    placeholder="Ej. 100 o -50"
-                    value={puntosManuales}
-                    onChange={(e) => setPuntosManuales(e.target.value)}
-                    className="input-tienta py-2 text-black font-semibold"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
-                    Concepto / Motivo de Auditoría
-                  </label>
-                  <textarea
-                    required
-                    placeholder="Ej. Promo especial apertura / compensación por retraso"
-                    value={detalleManual}
-                    onChange={(e) => setDetalleManual(e.target.value)}
-                    className="w-full rounded-2xl border border-black/10 bg-white px-4 py-2.5 text-sm focus:border-tienta-gold focus:outline-none focus:ring-1 focus:ring-tienta-gold transition-all duration-300 placeholder:text-black/50 text-black h-24 resize-none font-medium"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loadingManual}
-                  className="w-full btn-tienta-outline py-3 text-sm font-bold tracking-wider cursor-pointer"
-                >
-                  {loadingManual ? 'Procesando...' : 'Aplicar Carga Manual'}
-                </button>
-              </form>
-            </div>
-
-          </div>
-
-          {/* Catálogo de Premios y Canjes */}
-          <div className="lg:col-span-2 space-y-6">
-            
-            <div className="bg-white border border-black/5 rounded-3xl p-6 sm:p-8 shadow-sm text-left">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
-                  <Gift className="text-tienta-teal" size={20} />
-                  <h3 className="text-lg font-montserrat font-extrabold tracking-wider text-tienta-teal uppercase">
+                  <Gift className="text-tienta-teal" size={18} />
+                  <h3 className="text-sm font-montserrat font-extrabold tracking-wider text-tienta-teal uppercase">
                     Canje de Premios
                   </h3>
                 </div>
-                <span className="text-xs text-black/75 font-montserrat uppercase tracking-wider font-extrabold">
-                  Saldo del Cliente: {cliente.puntos_actuales} pts
-                </span>
               </div>
 
               {premios.length === 0 ? (
-                <p className="text-sm text-black/50 py-8 text-center font-medium">No hay premios cargados en el catálogo actualmente.</p>
+                <p className="text-xs text-black/50 py-6 text-center font-medium">No hay premios cargados.</p>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   {premios.map((premio) => {
                     const noAlcanza = cliente.puntos_actuales < premio.puntos_requeridos
                     return (
@@ -526,22 +415,22 @@ export default function Caja() {
                       >
                         <div>
                           <div className="flex justify-between items-start mb-2">
-                            <h4 className="font-montserrat font-bold text-sm uppercase tracking-wide text-tienta-teal">
+                            <h4 className="font-montserrat font-bold text-xs uppercase tracking-wide text-tienta-teal">
                               {premio.nombre}
                             </h4>
-                            <span className="bg-tienta-crema text-tienta-goldDark px-2.5 py-0.5 rounded-full text-xs font-montserrat uppercase tracking-wider font-extrabold border border-tienta-gold/20">
+                            <span className="bg-tienta-crema text-tienta-goldDark px-2 py-0.5 rounded-full text-[10px] font-montserrat uppercase tracking-wider font-extrabold border border-tienta-gold/20 shrink-0">
                               {premio.puntos_requeridos} pts
                             </span>
                           </div>
-                          <p className="text-xs text-black/80 font-lato leading-relaxed font-semibold mb-4">
-                            {premio.descripcion || 'Sin descripción disponible.'}
+                          <p className="text-[11px] text-black/80 font-lato leading-relaxed font-semibold mb-4">
+                            {premio.descripcion || 'Sin descripción.'}
                           </p>
                         </div>
 
                         <button
                           onClick={() => handleCanjearPremio(premio)}
                           disabled={noAlcanza}
-                          className={`w-full py-2.5 rounded-full font-montserrat uppercase tracking-widest text-[10px] font-extrabold cursor-pointer transition-all duration-200 ${
+                          className={`w-full py-2 rounded-full font-montserrat uppercase tracking-widest text-[9px] font-extrabold cursor-pointer transition-all duration-200 ${
                             noAlcanza
                               ? 'bg-black/5 text-black/40 cursor-not-allowed'
                               : 'bg-tienta-gold text-white hover:bg-tienta-teal shadow-sm active:scale-95'
@@ -556,9 +445,132 @@ export default function Caja() {
               )}
             </div>
 
+          </div>
+
+          {/* Columna Derecha: Carga de Puntos (Compra y Manual) e Historial */}
+          <div className="lg:col-span-2 space-y-6">
+            
+            {/* Operación: Cargar Compra */}
+            <div className="bg-white border border-black/5 rounded-3xl p-6 sm:p-8 shadow-sm text-left">
+              <div className="flex items-center gap-2 mb-6">
+                <ShoppingCart className="text-tienta-teal" size={20} />
+                <h4 className="font-montserrat font-extrabold text-base tracking-wider uppercase text-tienta-teal">
+                  Carga de Puntos por Compra (Operación Principal)
+                </h4>
+              </div>
+
+              {successCompra && (
+                <div className="mb-6 p-4 rounded-2xl bg-green-50 border border-green-100 text-green-600 text-sm flex items-center gap-2">
+                  <CheckCircle2 size={16} />
+                  <span className="font-semibold">¡Puntos cargados con éxito! El saldo del cliente ha sido actualizado.</span>
+                </div>
+              )}
+
+              <form onSubmit={handleCargarCompra} className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="sm:col-span-1">
+                  <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
+                    Importe de la Compra ($)
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    placeholder="Ej. 10000"
+                    value={importeCompra}
+                    onChange={(e) => setImporteCompra(e.target.value)}
+                    className="input-tienta py-2.5 text-black font-semibold text-base"
+                  />
+                  {importeCompra && (
+                    <span className="text-xs text-tienta-goldDark font-extrabold mt-2 block tracking-wide bg-tienta-gold/5 border border-tienta-gold/25 p-2 rounded-xl">
+                      ⚡ Sumará {previewPuntos()} puntos {cliente.nivel !== 'Standard' && `(Con bono de nivel ${cliente.nivel})`}
+                    </span>
+                  )}
+                </div>
+
+                <div className="sm:col-span-1">
+                  <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
+                    Número de Ticket / Factura
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej. T-002-12345"
+                    value={ticketCompra}
+                    onChange={(e) => setTicketCompra(e.target.value)}
+                    className="input-tienta py-2.5 text-black font-semibold text-base"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <button
+                    type="submit"
+                    disabled={loadingCompra}
+                    className="w-full btn-tienta-teal py-4 text-sm font-bold tracking-wider cursor-pointer shadow-md uppercase"
+                  >
+                    {loadingCompra ? 'Procesando...' : 'Cargar Puntos de la Compra'}
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Operación: Carga Manual */}
+            <div className="bg-white border border-black/5 rounded-3xl p-6 sm:p-8 shadow-sm text-left">
+              <div className="flex items-center gap-2 mb-6">
+                <FileText className="text-tienta-goldDark" size={20} />
+                <h4 className="font-montserrat font-extrabold text-base tracking-wider uppercase text-tienta-goldDark">
+                  Carga Manual / Ajuste de Puntos Especial
+                </h4>
+              </div>
+
+              {successManual && (
+                <div className="mb-6 p-4 rounded-2xl bg-green-50 border border-green-100 text-green-600 text-sm flex items-center gap-2">
+                  <CheckCircle2 size={16} />
+                  <span className="font-semibold">¡Ajuste de puntos aplicado exitosamente!</span>
+                </div>
+              )}
+
+              <form onSubmit={handleCargarManual} className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="sm:col-span-1">
+                  <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
+                    Puntos a Asignar (Usa negativo para restar)
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    placeholder="Ej. 100 o -50"
+                    value={puntosManuales}
+                    onChange={(e) => setPuntosManuales(e.target.value)}
+                    className="input-tienta py-2.5 text-black font-semibold text-base"
+                  />
+                </div>
+
+                <div className="sm:col-span-1">
+                  <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
+                    Concepto / Motivo de Auditoría
+                  </label>
+                  <textarea
+                    required
+                    placeholder="Ej. Promo especial apertura / compensación por retraso"
+                    value={detalleManual}
+                    onChange={(e) => setDetalleManual(e.target.value)}
+                    className="w-full rounded-2xl border border-black/10 bg-white px-4 py-2.5 text-sm focus:border-tienta-gold focus:outline-none focus:ring-1 focus:ring-tienta-gold transition-all duration-300 placeholder:text-black/50 text-black h-12 resize-none font-medium"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <button
+                    type="submit"
+                    disabled={loadingManual}
+                    className="w-full btn-tienta-outline py-3.5 text-sm font-bold tracking-wider cursor-pointer uppercase font-montserrat text-tienta-goldDark border-tienta-goldDark hover:bg-tienta-goldDark/5"
+                  >
+                    {loadingManual ? 'Procesando...' : 'Aplicar Carga Manual / Ajuste'}
+                  </button>
+                </div>
+              </form>
+            </div>
+
             {/* Historial Reciente de Operaciones */}
             <div className="bg-white border border-black/5 rounded-3xl p-6 sm:p-8 shadow-sm text-left">
-              <h3 className="text-lg font-montserrat font-extrabold tracking-wider text-tienta-teal mb-6 uppercase">
+              <h3 className="text-lg font-montserrat font-extrabold tracking-wider text-tienta-teal mb-6 uppercase flex items-center gap-2">
                 Historial Reciente (Últimos 10 movimientos)
               </h3>
 
@@ -570,11 +582,11 @@ export default function Caja() {
                 <p className="text-sm text-black/50 py-8 text-center font-medium">Este cliente aún no registra transacciones.</p>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm font-lato text-left">
+                  <table className="w-full text-sm font-lato text-left border-collapse">
                     <thead>
                       <tr className="border-b border-black/10 text-black/70 font-montserrat uppercase text-xs tracking-wider">
                         <th className="pb-3 font-extrabold">Fecha</th>
-                        <th className="pb-3 font-extrabold">Operación</th>
+                        <th className="pb-3 font-extrabold">Operación / Detalle</th>
                         <th className="pb-3 font-extrabold">Ticket/Ref</th>
                         <th className="pb-3 font-extrabold text-right">Importe</th>
                         <th className="pb-3 font-extrabold text-right">Puntos</th>
@@ -583,7 +595,7 @@ export default function Caja() {
                     <tbody className="divide-y divide-black/5 font-semibold text-black/85">
                       {historial.map((tr) => (
                         <tr key={tr.id} className="hover:bg-tienta-crema/20">
-                          <td className="py-3 text-black/70">
+                          <td className="py-3 text-black/70 text-xs">
                             {new Date(tr.created_at).toLocaleDateString('es-AR', {
                               day: '2-digit',
                               month: '2-digit',
@@ -597,8 +609,13 @@ export default function Caja() {
                               {tr.tipo === 'carga_compra' ? 'Compra' : tr.tipo === 'carga_manual' ? 'Carga Manual' : 'Canje'}
                             </span>
                             <span className="text-xs text-black/65 block mt-0.5 font-medium">{tr.detalle}</span>
+                            {tr.creador && (
+                              <span className="text-[10px] text-tienta-teal font-extrabold block mt-0.5">
+                                👤 Op: {tr.creador.nombre} ({tr.creador.email.split('@')[0]})
+                              </span>
+                            )}
                           </td>
-                          <td className="py-3 text-black/65 font-bold">
+                          <td className="py-3 text-black/65 font-bold text-xs">
                             {tr.ticket_factura || '-'}
                           </td>
                           <td className="py-3 text-right font-extrabold text-black/80">

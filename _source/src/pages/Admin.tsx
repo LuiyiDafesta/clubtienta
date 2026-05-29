@@ -40,6 +40,11 @@ interface TransaccionAuditoria {
     apellido: string
     dni: string
   }
+  creador?: {
+    nombre: string
+    apellido: string
+    email: string
+  } | null
 }
 
 export default function Admin() {
@@ -284,7 +289,8 @@ export default function Admin() {
         .from('transacciones')
         .select(`
           id, tipo, importe, puntos, ticket_factura, detalle, created_at,
-          cliente:profiles(nombre, apellido, dni)
+          cliente:profiles!cliente_id(nombre, apellido, dni),
+          creador:profiles!creado_por(nombre, apellido, email)
         `)
         .order('created_at', { ascending: false })
 
@@ -896,6 +902,7 @@ export default function Admin() {
                     <th className="pb-3 font-extrabold">Socio (DNI)</th>
                     <th className="pb-3 font-extrabold">Tipo</th>
                     <th className="pb-3 font-extrabold">Ticket/Ref</th>
+                    <th className="pb-3 font-extrabold">Operador</th>
                     <th className="pb-3 font-extrabold">Detalle del Movimiento</th>
                     <th className="pb-3 font-extrabold text-right">Importe</th>
                     <th className="pb-3 font-extrabold text-right">Puntos</th>
@@ -929,6 +936,16 @@ export default function Admin() {
                       </td>
                       <td className="py-3.5 text-black/60 font-bold">
                         {tr.ticket_factura || '-'}
+                      </td>
+                      <td className="py-3.5 text-xs text-black/70">
+                        {tr.creador ? (
+                          <div className="flex flex-col">
+                            <span className="font-bold text-black">{tr.creador.nombre} {tr.creador.apellido}</span>
+                            <span className="text-[10px] text-tienta-teal font-bold font-mono">{tr.creador.email.split('@')[0]}</span>
+                          </div>
+                        ) : (
+                          <span className="text-black/45 italic font-medium">Autocarga / Registro</span>
+                        )}
                       </td>
                       <td className="py-3.5 text-black/70 max-w-xs truncate" title={tr.detalle}>
                         {tr.detalle}

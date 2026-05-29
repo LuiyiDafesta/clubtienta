@@ -229,11 +229,11 @@ export default function Registro() {
       </div>
 
       {/* Lateral Derecho: Formulario de Registro */}
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-12">
-        <div className="w-full max-w-lg bg-white border border-black/5 rounded-3xl p-8 sm:p-10 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.05)]">
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-12">
+        <div className="w-full max-w-lg bg-white border border-black/5 rounded-3xl px-5 py-6 sm:p-10 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.05)]">
           
-          <div className="mb-8">
-            <div className="md:hidden flex justify-start mb-6">
+          <div className="mb-5">
+            <div className="md:hidden flex justify-start mb-4">
               <Link to="/" className="text-tienta-teal/60 hover:text-tienta-teal flex items-center gap-2 text-xs font-montserrat uppercase tracking-wider font-bold">
                 <ArrowLeft size={12} /> Volver
               </Link>
@@ -248,13 +248,13 @@ export default function Registro() {
           </div>
 
           {errorMsg && (
-            <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm font-bold text-left">
+            <div className="mb-4 p-4 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm font-bold text-left">
               {errorMsg}
             </div>
           )}
 
           {successMsg && (
-            <div className="mb-6 p-4 rounded-xl bg-green-50 border border-green-100 text-green-600 text-sm font-bold text-left">
+            <div className="mb-4 p-4 rounded-xl bg-green-50 border border-green-100 text-green-600 text-sm font-bold text-left">
               {successMsg}
             </div>
           )}
@@ -432,7 +432,7 @@ export default function Registro() {
             </button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-black/5 text-center">
+          <div className="mt-5 pt-4 border-t border-black/5 text-center">
             <p className="text-xs text-black/50">
               ¿Ya estás asociado?{' '}
               <Link

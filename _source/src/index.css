@@ -52,12 +52,12 @@
 }
 
 html {
-  font-size: 17px; /* Aumenta proporcionalmente toda la tipografía de la app para máxima legibilidad */
+  font-size: 18px; /* Aumentado a 18px en móviles para mayor legibilidad */
 }
 
 @media (min-width: 768px) {
   html {
-    font-size: 18px; /* Aumenta un poco más en pantallas de escritorio donde opera el cajero */
+    font-size: 19px; /* Aumentado a 19px en escritorio para máxima claridad del staff */
   }
 }
 

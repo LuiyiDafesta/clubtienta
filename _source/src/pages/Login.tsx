@@ -95,11 +95,11 @@ export default function Login() {
       </div>
 
       {/* Lateral Derecho: Formulario de Login */}
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-12">
-        <div className="w-full max-w-md bg-white border border-black/5 rounded-3xl p-8 sm:p-10 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.05)]">
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-12">
+        <div className="w-full max-w-md bg-white border border-black/5 rounded-3xl px-5 py-6 sm:p-10 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.05)]">
           
           {/* Cabecera Móvil del Logo */}
-          <div className="text-center md:hidden mb-8">
+          <div className="text-center md:hidden mb-5">
             <span className="font-montserrat text-4xl font-extrabold tracking-[0.2em] text-tienta-teal">
               TIENTA
             </span>
@@ -109,7 +109,7 @@ export default function Login() {
           </div>
 
           {vista === 'login' ? (
-            <div className="mb-8 hidden md:block">
+            <div className="mb-5 hidden md:block">
               <h2 className="text-2xl font-montserrat font-extrabold tracking-wider text-tienta-teal uppercase">
                 Ingresar al Club
               </h2>
@@ -118,7 +118,7 @@ export default function Login() {
               </p>
             </div>
           ) : (
-            <div className="mb-8">
+            <div className="mb-5">
               <h2 className="text-2xl font-montserrat font-extrabold tracking-wider text-tienta-teal uppercase">
                 Recuperar Clave
               </h2>
@@ -129,19 +129,19 @@ export default function Login() {
           )}
 
           {errorMsg && (
-            <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm font-bold text-left">
+            <div className="mb-4 p-4 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm font-bold text-left">
               {errorMsg}
             </div>
           )}
 
           {successMsg && (
-            <div className="mb-6 p-4 rounded-xl bg-green-50 border border-green-100 text-green-600 text-sm font-bold text-left">
+            <div className="mb-4 p-4 rounded-xl bg-green-50 border border-green-100 text-green-600 text-sm font-bold text-left">
               {successMsg}
             </div>
           )}
 
           {vista === 'login' ? (
-            <form onSubmit={handleLogin} className="space-y-5 text-left">
+            <form onSubmit={handleLogin} className="space-y-4 text-left">
               <div>
                 <label className="block text-xs font-montserrat uppercase tracking-wider font-extrabold text-tienta-teal mb-2">
                   Correo Electrónico
@@ -196,14 +196,14 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full btn-tienta-gold py-3.5 flex items-center justify-center gap-2 mt-8 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="w-full btn-tienta-gold py-3.5 flex items-center justify-center gap-2 mt-6 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 <span>{loading ? 'Cargando...' : 'Iniciar Sesión'}</span>
                 {!loading && <ArrowRight size={14} />}
               </button>
             </form>
           ) : (
-            <form onSubmit={handleRecuperar} className="space-y-5 text-left">
+            <form onSubmit={handleRecuperar} className="space-y-4 text-left">
               <div>
                 <label className="block text-xs font-montserrat uppercase tracking-wider font-extrabold text-tienta-teal mb-2">
                   Correo Electrónico
@@ -226,7 +226,7 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full btn-tienta-gold py-3.5 flex items-center justify-center gap-2 mt-8 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="w-full btn-tienta-gold py-3.5 flex items-center justify-center gap-2 mt-6 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 <span>{loading ? 'Enviando...' : 'Enviar Instrucciones'}</span>
                 {!loading && <ArrowRight size={14} />}
@@ -250,7 +250,7 @@ export default function Login() {
 
           {/* Registro Rápido */}
           {vista === 'login' && (
-            <div className="mt-8 pt-6 border-t border-black/5 text-center">
+            <div className="mt-6 pt-4 border-t border-black/5 text-center">
               <p className="text-xs text-black/50">
                 ¿Sos nuevo cliente?{' '}
                 <Link

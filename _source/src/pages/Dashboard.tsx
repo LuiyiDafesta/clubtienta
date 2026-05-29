@@ -621,8 +621,8 @@ export default function Dashboard() {
       {/* Modal de Edición de Perfil de Socio */}
       {editingProfile && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in text-left">
-          <div className="bg-white border border-black/10 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl animate-scale-up">
-            <div className="flex justify-between items-start mb-6">
+          <div className="bg-white border border-black/10 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl animate-scale-up max-h-[92vh] overflow-y-auto">
+            <div className="flex justify-between items-start mb-5">
               <div>
                 <span className="text-[10px] font-montserrat uppercase tracking-[0.2em] text-tienta-goldDark font-extrabold">
                   Mi Perfil ClubTienta
@@ -633,16 +633,16 @@ export default function Dashboard() {
               </div>
               <button
                 onClick={() => setEditingProfile(false)}
-                className="text-black/40 hover:text-black font-bold text-xl cursor-pointer"
+                className="text-black/40 hover:text-black font-bold text-xl cursor-pointer p-1 -mt-1"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleGuardarEdicion} className="space-y-4">
+            <form onSubmit={handleGuardarEdicion} className="space-y-3 sm:space-y-4">
               
               {/* Bloque Fijo: DNI y Email */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-tienta-crema/40 border border-black/5 p-4 rounded-2xl">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 bg-tienta-crema/40 border border-black/5 p-4 rounded-2xl">
                 <div>
                   <span className="block text-[9px] font-montserrat uppercase tracking-wider font-extrabold text-black/45 mb-1">
                     Mi DNI (Fijo)
@@ -662,7 +662,7 @@ export default function Dashboard() {
               </div>
 
               {/* Grid de Nombre y Apellido */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
                   <label className="block text-xs font-montserrat uppercase tracking-wider font-extrabold text-tienta-teal mb-2">
                     Nombre

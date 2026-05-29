@@ -147,6 +147,70 @@ export default function Navbar() {
           </div>
         </div>
       </div>
+
+      {/* Barra de navegación inferior premium para móviles (Solo para pantallas chicas < md) */}
+      {userRole && (
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-tienta-teal text-white border-t border-white/10 z-45 shadow-[0_-4px_16px_rgba(0,0,0,0.12)] flex justify-around items-center py-2.5 px-4 backdrop-blur-md bg-tienta-teal/95 safe-bottom">
+          {userRole === 'client' && (
+            <>
+              <button
+                onClick={() => navigate('/dashboard')}
+                className={`flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-colors duration-200 py-1 px-3 ${
+                  location.pathname === '/dashboard' ? 'text-tienta-goldLight font-bold scale-105' : 'text-white/70 hover:text-white'
+                }`}
+              >
+                <LayoutDashboard size={20} />
+                <span className="text-[9px] font-montserrat uppercase tracking-wider font-extrabold">Mi Tarjeta</span>
+              </button>
+              <button
+                onClick={() => navigate('/movimientos')}
+                className={`flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-colors duration-200 py-1 px-3 ${
+                  location.pathname === '/movimientos' ? 'text-tienta-goldLight font-bold scale-105' : 'text-white/70 hover:text-white'
+                }`}
+              >
+                <ClipboardList size={20} />
+                <span className="text-[9px] font-montserrat uppercase tracking-wider font-extrabold">Movimientos</span>
+              </button>
+            </>
+          )}
+
+          {(userRole === 'admin' || userRole === 'cajero') && (
+            <>
+              <button
+                onClick={() => navigate('/caja')}
+                className={`flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-colors duration-200 py-1 px-3 ${
+                  location.pathname === '/caja' ? 'text-tienta-goldLight font-bold scale-105' : 'text-white/70 hover:text-white'
+                }`}
+              >
+                <Award size={20} />
+                <span className="text-[9px] font-montserrat uppercase tracking-wider font-extrabold">Caja</span>
+              </button>
+              {userRole === 'admin' && (
+                <>
+                  <button
+                    onClick={() => navigate('/crm')}
+                    className={`flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-colors duration-200 py-1 px-3 ${
+                      location.pathname === '/crm' ? 'text-tienta-goldLight font-bold scale-105' : 'text-white/70 hover:text-white'
+                    }`}
+                  >
+                    <Layers size={20} />
+                    <span className="text-[9px] font-montserrat uppercase tracking-wider font-extrabold">CRM</span>
+                  </button>
+                  <button
+                    onClick={() => navigate('/admin')}
+                    className={`flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-colors duration-200 py-1 px-3 ${
+                      location.pathname === '/admin' ? 'text-tienta-goldLight font-bold scale-105' : 'text-white/70 hover:text-white'
+                    }`}
+                  >
+                    <ClipboardList size={20} />
+                    <span className="text-[9px] font-montserrat uppercase tracking-wider font-extrabold">Panel</span>
+                  </button>
+                </>
+              )}
+            </>
+          )}
+        </div>
+      )}
     </nav>
   )
 }

@@ -66,6 +66,12 @@ body {
   background-color: #FAF8F5; /* Forzar el color de fondo crema de Tienta */
 }
 
+@media (max-width: 767px) {
+  body {
+    padding-bottom: 80px; /* Previene que la barra inferior tape contenido al final del scroll */
+  }
+}
+
 h1, h2, h3, h4, h5, h6 {
   @apply font-montserrat font-bold tracking-wider;
 }

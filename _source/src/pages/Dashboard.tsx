@@ -271,7 +271,7 @@ export default function Dashboard() {
         <div className="flex flex-wrap items-center gap-3 sm:gap-4 self-start sm:self-auto">
           <button
             onClick={() => setEditingProfile(true)}
-            className="flex items-center gap-1.5 text-xs text-tienta-goldDark font-bold hover:text-tienta-teal tracking-wider uppercase font-montserrat cursor-pointer border border-tienta-gold/20 px-4 py-2 rounded-full hover:bg-tienta-gold/5 transition-all duration-200"
+            className="flex items-center gap-1.5 text-xs bg-tienta-teal text-white hover:bg-tienta-tealDark font-extrabold tracking-wider uppercase font-montserrat cursor-pointer px-4.5 py-2.5 rounded-full transition-all duration-200 shadow-[0_3px_10px_rgba(2,97,99,0.2)] active:scale-95"
           >
             <UserCog size={12} /> Editar Mis Datos
           </button>
@@ -279,7 +279,7 @@ export default function Dashboard() {
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="flex items-center gap-1.5 text-xs text-tienta-goldDark font-bold hover:text-tienta-teal tracking-wider uppercase font-montserrat cursor-pointer border border-tienta-gold/20 px-4 py-2 rounded-full hover:bg-tienta-gold/5 transition-all duration-200"
+            className="flex items-center gap-1.5 text-xs bg-tienta-gold text-white hover:bg-tienta-goldDark font-extrabold tracking-wider uppercase font-montserrat cursor-pointer px-4.5 py-2.5 rounded-full transition-all duration-200 shadow-[0_3px_10px_rgba(202,168,112,0.25)] active:scale-95"
           >
             <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} /> {refreshing ? 'Actualizando...' : 'Actualizar Puntos'}
           </button>

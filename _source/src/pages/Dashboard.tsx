@@ -300,12 +300,12 @@ export default function Dashboard() {
                 <span className="font-montserrat text-xl font-extrabold tracking-[0.25em] text-white">
                   TIENTA
                 </span>
-                <span className="font-montserrat text-[8px] font-extrabold tracking-[0.3em] text-tienta-gold uppercase -mt-0.5">
+                <span className="font-montserrat text-[10px] font-extrabold tracking-[0.3em] text-tienta-gold uppercase -mt-0.5">
                   CLUB DE PUNTOS
                 </span>
               </div>
               
-              <div className="bg-tienta-gold/25 text-white border border-tienta-gold/45 px-3 py-1 rounded-full text-[10px] font-montserrat uppercase tracking-wider font-bold">
+              <div className="bg-tienta-gold/25 text-white border border-tienta-gold/45 px-3 py-1 rounded-full text-xs font-montserrat uppercase tracking-wider font-bold">
                 Socio {cliente.nivel}
               </div>
             </div>
@@ -313,13 +313,13 @@ export default function Dashboard() {
             {/* Código de Barras / QR Visual simulado */}
             <div className="bg-white/95 rounded-2xl p-4 flex items-center justify-between gap-4 mb-6 relative z-10 shadow-sm border border-black/10">
               <div className="flex flex-col text-left">
-                <span className="text-[10px] font-montserrat uppercase tracking-wider text-black/60 mb-1 font-extrabold">
+                <span className="text-xs font-montserrat uppercase tracking-wider text-black/75 mb-1 font-extrabold">
                   Socio Identificador
                 </span>
                 <span className="text-base font-bold text-tienta-teal font-mono tracking-wider">
                   DNI {cliente.dni}
                 </span>
-                <span className="text-xs text-black/75 font-lato mt-0.5 font-bold">
+                <span className="text-sm text-black/90 font-lato mt-0.5 font-bold">
                   {cliente.nombre} {cliente.apellido}
                 </span>
               </div>
@@ -330,7 +330,7 @@ export default function Dashboard() {
 
             <div className="flex justify-between items-end relative z-10">
               <div className="text-left">
-                <span className="text-xs font-montserrat uppercase tracking-wider text-white/75 block mb-0.5 font-bold">
+                <span className="text-sm font-montserrat uppercase tracking-wider text-white/85 block mb-0.5 font-bold">
                   Total Acumulado
                 </span>
                 <span className="text-4xl font-montserrat font-extrabold text-tienta-gold tracking-tight">
@@ -340,7 +340,7 @@ export default function Dashboard() {
                   pts
                 </span>
               </div>
-              <span className="text-[9px] font-montserrat uppercase tracking-wider text-white/60 mb-1 font-bold">
+              <span className="text-xs font-montserrat uppercase tracking-wider text-white/75 mb-1 font-bold">
                 Caja Escaneable
               </span>
             </div>
@@ -348,7 +348,7 @@ export default function Dashboard() {
             {/* Barra de progreso Premium (Solo si es Gold) */}
             {cliente.nivel === 'Gold' && (
               <div className="mt-5 pt-4 border-t border-white/10 relative z-10 text-left">
-                <div className="flex justify-between items-center mb-1.5 text-[9px] font-montserrat uppercase font-extrabold tracking-wider text-[#fad08c]">
+                <div className="flex justify-between items-center mb-1.5 text-xs font-montserrat uppercase font-extrabold tracking-wider text-[#fad08c]">
                   <span>Progreso a Socio Platinum</span>
                   <span>{Math.min(100, Math.floor((totalConsumido / limitePlatinum) * 100))}%</span>
                 </div>
@@ -358,7 +358,7 @@ export default function Dashboard() {
                     style={{ width: `${Math.min(100, Math.floor((totalConsumido / limitePlatinum) * 100))}%` }}
                   ></div>
                 </div>
-                <div className="flex justify-between items-center mt-1 text-[8px] font-bold font-montserrat uppercase tracking-wider text-white/75 leading-none">
+                <div className="flex justify-between items-center mt-1 text-[10px] font-bold font-montserrat uppercase tracking-wider text-white/85 leading-none">
                   <span>Consumo: ${Math.floor(totalConsumido).toLocaleString('es-AR')}</span>
                   <span>Faltan: ${Math.max(0, Math.floor(limitePlatinum - totalConsumido)).toLocaleString('es-AR')} para Platino</span>
                 </div>
@@ -368,15 +368,15 @@ export default function Dashboard() {
 
           {/* Progreso hacia el siguiente premio */}
           <div className="bg-white border border-black/5 rounded-3xl p-6 shadow-sm text-left">
-            <h3 className="font-montserrat font-extrabold text-sm tracking-wider text-tienta-teal uppercase mb-4 flex items-center gap-2">
-              <Activity size={14} className="text-tienta-goldDark" /> Tu Progreso
+            <h3 className="font-montserrat font-extrabold text-base tracking-wider text-tienta-teal uppercase mb-4 flex items-center gap-2">
+              <Activity size={15} className="text-tienta-goldDark" /> Tu Progreso
             </h3>
             
             {proximoPremio ? (
               <div className="space-y-3">
-                <div className="flex justify-between text-xs font-semibold">
+                <div className="flex justify-between text-sm font-semibold">
                   <span className="text-black/80 font-lato">Próximo canje disponible:</span>
-                  <span className="text-tienta-goldDark font-extrabold font-montserrat uppercase text-xs tracking-wider">{proximoPremio.nombre}</span>
+                  <span className="text-tienta-goldDark font-extrabold font-montserrat uppercase text-sm tracking-wider">{proximoPremio.nombre}</span>
                 </div>
                 <div className="w-full bg-tienta-crema rounded-full h-2 overflow-hidden border border-black/5">
                   <div 
@@ -384,15 +384,15 @@ export default function Dashboard() {
                     style={{ width: `${progresoPorcentaje}%` }}
                   ></div>
                 </div>
-                <div className="flex justify-between text-xs text-black/65 font-bold tracking-wide">
+                <div className="flex justify-between text-sm text-black/75 font-bold tracking-wide">
                   <span>{cliente.puntos_actuales} Puntos</span>
                   <span>Meta: {proximoPremio.puntos_requeridos} pts ({proximoPremio.puntos_requeridos - cliente.puntos_actuales} faltantes)</span>
                 </div>
               </div>
             ) : (
               <div className="text-center py-2">
-                <p className="text-sm text-tienta-goldDark font-extrabold font-montserrat uppercase tracking-wider">¡Sos el Rey del Club! 👑</p>
-                <p className="text-xs text-black/75 mt-1 leading-relaxed font-semibold">Tenés puntos acumulados suficientes para canjear absolutamente cualquier premio del catálogo actual.</p>
+                <p className="text-base text-tienta-goldDark font-extrabold font-montserrat uppercase tracking-wider">¡Sos el Rey del Club! 👑</p>
+                <p className="text-sm text-black/85 mt-1 leading-relaxed font-semibold">Tenés puntos acumulados suficientes para canjear absolutamente cualquier premio del catálogo actual.</p>
               </div>
             )}
           </div>
@@ -401,31 +401,31 @@ export default function Dashboard() {
           <div className="bg-white border border-black/5 rounded-3xl p-6 shadow-sm text-left relative overflow-hidden">
             <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-tienta-gold/5 blur-xl"></div>
             
-            <h3 className="font-montserrat font-extrabold text-sm tracking-wider text-tienta-teal uppercase mb-3 flex items-center gap-2">
+            <h3 className="font-montserrat font-extrabold text-base tracking-wider text-tienta-teal uppercase mb-3 flex items-center gap-2">
               <Share2 size={15} className="text-tienta-goldDark" /> Recomendar Amigos 🍦
             </h3>
             
-            <p className="text-xs text-black/75 leading-relaxed font-semibold mb-4">
+            <p className="text-sm text-black/85 leading-relaxed font-semibold mb-4">
               Invitá a tus amigos a asociarse al Club. Ingresando tu DNI como referido al registrarse, **¡ambos reciben puntos de regalo!**
             </p>
             
             <div className="bg-tienta-crema/40 border border-tienta-gold/25 rounded-2xl p-4 mb-4 flex items-center justify-between">
               <div>
-                <span className="text-[10px] uppercase font-montserrat font-bold tracking-wider text-black/50 block mb-1">
+                <span className="text-xs uppercase font-montserrat font-bold tracking-wider text-black/65 block mb-1">
                   Tu Código de Referido (DNI)
                 </span>
                 <span className="text-lg font-montserrat font-extrabold text-tienta-teal tracking-wide">
                   {cliente.dni}
                 </span>
               </div>
-              <div className="bg-tienta-gold text-white font-montserrat text-[10px] uppercase font-bold tracking-wider px-2.5 py-1 rounded-full shadow-sm">
+              <div className="bg-tienta-gold text-white font-montserrat text-xs uppercase font-bold tracking-wider px-2.5 py-1 rounded-full shadow-sm">
                 Activo
               </div>
             </div>
             
             <button
               onClick={handleCopyLink}
-              className="w-full flex items-center justify-center gap-2 bg-tienta-teal text-white hover:bg-tienta-teal/90 py-2.5 rounded-xl text-xs font-montserrat uppercase tracking-wider font-extrabold transition-all duration-300 shadow-sm active:scale-95 cursor-pointer"
+              className="w-full flex items-center justify-center gap-2 bg-tienta-teal text-white hover:bg-tienta-teal/90 py-2.5 rounded-xl text-sm font-montserrat uppercase tracking-wider font-extrabold transition-all duration-300 shadow-sm active:scale-95 cursor-pointer"
             >
               <Copy size={13} />
               <span>{copied ? '¡Enlace Copiado!' : 'Copiar Enlace de Invitación'}</span>
@@ -434,29 +434,29 @@ export default function Dashboard() {
 
           {/* Historial Reciente de Mis Puntos */}
           <div className="bg-white border border-black/5 rounded-3xl p-6 shadow-sm text-left">
-            <h3 className="font-montserrat font-extrabold text-sm tracking-wider text-tienta-teal uppercase mb-4">
+            <h3 className="font-montserrat font-extrabold text-base tracking-wider text-tienta-teal uppercase mb-4">
               Mis Últimos Movimientos
             </h3>
 
             {historial.length === 0 ? (
-              <p className="text-xs text-black/50 py-6 text-center font-medium">Todavía no registrás consumos.</p>
+              <p className="text-sm text-black/65 py-6 text-center font-medium">Todavía no registrás consumos.</p>
             ) : (
               <div className="space-y-3">
                 {historial.map((tr) => (
                   <div key={tr.id} className="flex justify-between items-center py-2 border-b border-black/5 last:border-b-0">
                     <div className="text-left max-w-[170px] truncate">
-                      <span className="text-xs font-bold block text-black">
+                      <span className="text-sm font-bold block text-black">
                         {tr.tipo === 'carga_compra' ? 'Compra en Local' : tr.tipo === 'carga_manual' ? 'Premio/Ajuste' : 'Premio Canjeado'}
                       </span>
-                      <span className="text-xs text-black/65 block mt-0.5 truncate font-medium">{tr.detalle}</span>
+                      <span className="text-sm text-black/75 block mt-0.5 truncate font-medium">{tr.detalle}</span>
                     </div>
                     <div className="text-right">
-                      <span className={`text-sm font-extrabold font-montserrat ${
+                      <span className={`text-base font-extrabold font-montserrat ${
                         tr.puntos > 0 ? 'text-green-600' : 'text-red-500'
                       }`}>
                         {tr.puntos > 0 ? `+${tr.puntos}` : tr.puntos}
                       </span>
-                      <span className="text-[10px] text-black/60 block mt-0.5 font-semibold">
+                      <span className="text-xs text-black/70 block mt-0.5 font-semibold">
                         {new Date(tr.created_at).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}
                       </span>
                     </div>

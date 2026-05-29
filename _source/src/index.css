@@ -52,12 +52,12 @@
 }
 
 html {
-  font-size: 18px; /* Aumentado a 18px en móviles para mayor legibilidad */
+  font-size: 20px; /* Incrementado a 20px en móviles para máxima accesibilidad y lectura para personas mayores */
 }
 
 @media (min-width: 768px) {
   html {
-    font-size: 19px; /* Aumentado a 19px en escritorio para máxima claridad del staff */
+    font-size: 18px; /* Cómodo en escritorio con mayor área de visualización */
   }
 }
 

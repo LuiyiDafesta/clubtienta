@@ -1141,28 +1141,27 @@ export default function Admin() {
               </div>
 
               <div>
-                <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
-                  Membresías que pueden canjearlo
+                <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-2 flex items-center gap-1.5">
+                  <Layers size={12} /> Membresías que pueden canjearlo
                 </label>
-                <div className="flex items-center gap-6 mt-2 bg-tienta-crema/20 border border-black/5 p-3 rounded-2xl">
-                  <label className="flex items-center gap-2 text-xs font-semibold text-black/80 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={nuevoPremio.niveles_aplicables?.includes('Gold')}
-                      onChange={() => toggleNivelAplicablePremio('Gold')}
-                      className="rounded text-tienta-teal focus:ring-tienta-teal cursor-pointer"
-                    />
-                    <span>Gold 🏆</span>
-                  </label>
-                  <label className="flex items-center gap-2 text-xs font-semibold text-black/80 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={nuevoPremio.niveles_aplicables?.includes('Platinum')}
-                      onChange={() => toggleNivelAplicablePremio('Platinum')}
-                      className="rounded text-tienta-teal focus:ring-tienta-teal cursor-pointer"
-                    />
-                    <span>Platinum 💎</span>
-                  </label>
+                <div className="flex flex-wrap gap-2">
+                  {nivelesClub.map((n) => {
+                    const selected = (nuevoPremio.niveles_aplicables || []).includes(n)
+                    return (
+                      <button
+                        type="button"
+                        key={n}
+                        onClick={() => toggleNivelAplicablePremio(n)}
+                        className={`px-3.5 py-1.5 rounded-full text-xs font-bold border transition-all cursor-pointer ${
+                          selected
+                            ? 'bg-tienta-gold border-tienta-gold text-white shadow-sm font-extrabold'
+                            : 'bg-white border-black/10 text-black/60 hover:text-black/90 font-semibold'
+                        }`}
+                      >
+                        {n} {n === 'Gold' ? '🏆' : '💎'}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
 
@@ -1242,23 +1241,30 @@ export default function Admin() {
               <div className="divide-y divide-black/5">
                 {premios.map((pr) => (
                   <div key={pr.id} className="py-4 flex justify-between items-center gap-4 hover:bg-tienta-crema/10 px-2 rounded-xl transition-all">
-                    <div>
-                      <h4 className="font-montserrat font-bold text-sm uppercase tracking-wide text-tienta-teal">
-                        {pr.nombre}
-                      </h4>
-                      <p className="text-xs text-black/70 font-lato leading-relaxed mt-1 max-w-lg font-medium">
-                        {pr.descripcion || 'Sin descripción'}
-                      </p>
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-2.5">
-                        <span className="text-xs text-tienta-goldDark font-extrabold">
-                          💰 {pr.puntos_requeridos} Puntos
-                        </span>
-                        <span className="text-xs text-black/55 font-bold">
-                          📦 Stock: {pr.stock === -1 ? 'Ilimitado' : pr.stock}
-                        </span>
-                        <span className="text-[10px] bg-tienta-teal/5 text-tienta-teal border border-tienta-teal/15 px-2 py-0.5 rounded font-montserrat uppercase font-extrabold tracking-wider">
-                          🎯 {pr.niveles_aplicables?.join(', ') || 'Gold, Platinum'}
-                        </span>
+                    <div className="flex items-center gap-4">
+                      {pr.imagen_url && (
+                        <div className="w-16 h-16 rounded-xl overflow-hidden border border-black/5 bg-black/5 shrink-0 shadow-sm">
+                          <img src={pr.imagen_url} alt={pr.nombre} className="w-full h-full object-cover" />
+                        </div>
+                      )}
+                      <div>
+                        <h4 className="font-montserrat font-bold text-sm uppercase tracking-wide text-tienta-teal">
+                          {pr.nombre}
+                        </h4>
+                        <p className="text-xs text-black/70 font-lato leading-relaxed mt-1 max-w-lg font-medium">
+                          {pr.descripcion || 'Sin descripción'}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-2.5">
+                          <span className="text-xs text-tienta-goldDark font-extrabold">
+                            💰 {pr.puntos_requeridos} Puntos
+                          </span>
+                          <span className="text-xs text-black/55 font-bold">
+                            📦 Stock: {pr.stock === -1 ? 'Ilimitado' : pr.stock}
+                          </span>
+                          <span className="text-[10px] bg-tienta-teal/5 text-tienta-teal border border-tienta-teal/15 px-2 py-0.5 rounded font-montserrat uppercase font-extrabold tracking-wider">
+                            🎯 {pr.niveles_aplicables?.join(', ') || 'Gold, Platinum'}
+                          </span>
+                        </div>
                       </div>
                     </div>
 

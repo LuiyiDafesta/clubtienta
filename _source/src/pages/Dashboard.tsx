@@ -350,8 +350,13 @@ export default function Dashboard() {
                   if (!aplicaNivel) return null
                   
                   return (
-                    <div key={pr.id} className="border border-tienta-gold/20 bg-tienta-crema/25 rounded-2xl p-4 flex flex-col justify-between">
+                    <div key={pr.id} className="border border-tienta-gold/20 bg-tienta-crema/25 rounded-2xl p-4 flex flex-col justify-between overflow-hidden shadow-[0_2px_10px_rgba(0,0,0,0.01)]">
                       <div>
+                        {pr.imagen_url && (
+                          <div className="w-full h-36 rounded-xl overflow-hidden border border-black/5 mb-3 bg-black/5 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
+                            <img src={pr.imagen_url} alt={pr.titulo} className="w-full h-full object-cover" />
+                          </div>
+                        )}
                         <div className="flex justify-between items-start mb-2">
                           <h4 className="font-montserrat font-bold text-sm uppercase tracking-wide text-tienta-teal">
                             {pr.titulo}

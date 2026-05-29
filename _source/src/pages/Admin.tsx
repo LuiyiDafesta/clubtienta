@@ -550,6 +550,40 @@ export default function Admin() {
     setNuevaPromo({ titulo: '', descripcion: '', descuento_porcentaje: null, dias_vigencia: [], niveles_aplicables: [], imagen_url: '', activo: true })
   }
 
+  const handleUploadPromoImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploadingImage(true)
+    try {
+      const compressedBlob = await compressImage(file, 800, 800, 0.8)
+      const compressedFile = new File([compressedBlob], file.name, { type: 'image/jpeg' })
+
+      const fileExt = 'jpg'
+      const fileName = `promo-${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`
+      
+      const { error } = await supabase.storage
+        .from('premios')
+        .upload(fileName, compressedFile, {
+          contentType: 'image/jpeg',
+          upsert: true
+        })
+
+      if (error) throw error
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('premios')
+        .getPublicUrl(fileName)
+
+      setNuevaPromo(prev => ({ ...prev, imagen_url: publicUrl }))
+    } catch (err: any) {
+      console.error(err)
+      alert('Error al subir imagen de la promoción: ' + err.message)
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
   const handleEliminarPromo = async (id: string) => {
     if (!window.confirm('¿Desea eliminar esta promoción?')) return
     await supabase.from('promociones').delete().eq('id', id)
@@ -1363,6 +1397,49 @@ export default function Admin() {
                 </div>
               </div>
 
+              {/* Imagen/Flyer de la Promoción */}
+              <div>
+                <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
+                  Flyer / Imagen Promocional (Opcional) 🍦
+                </label>
+                <div className="mt-2 space-y-3">
+                  {nuevaPromo.imagen_url ? (
+                    <div className="relative w-full h-32 rounded-2xl overflow-hidden border border-black/10 bg-black/5 flex items-center justify-center">
+                      <img
+                        src={nuevaPromo.imagen_url}
+                        alt="Vista previa promo"
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setNuevaPromo({ ...nuevaPromo, imagen_url: '' })}
+                        className="absolute top-2 right-2 bg-red-600 text-white px-2.5 py-1 rounded-full shadow hover:bg-red-700 transition-colors cursor-pointer text-[9px] font-bold font-montserrat uppercase tracking-wider"
+                      >
+                        Quitar
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-black/15 rounded-2xl cursor-pointer bg-tienta-crema/20 hover:bg-tienta-crema/40 hover:border-tienta-gold/45 transition-all duration-300">
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
+                        <span className="text-tienta-goldDark font-extrabold text-[10px] font-montserrat uppercase tracking-wider block mb-1">
+                          {uploadingImage ? 'Comprimiendo y Subiendo...' : 'Seleccionar Flyer / Foto'}
+                        </span>
+                        <span className="text-[9px] text-black/55 font-bold">
+                          JPG o PNG (Se optimizará a menos de 100KB)
+                        </span>
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        disabled={uploadingImage}
+                        onChange={handleUploadPromoImage}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
+                </div>
+              </div>
+
               <div className="flex gap-2">
                 <button
                   type="submit"
@@ -1397,25 +1474,32 @@ export default function Admin() {
               <div className="divide-y divide-black/5">
                 {promociones.map((pr) => (
                   <div key={pr.id} className="py-4 flex justify-between items-center gap-4 hover:bg-tienta-crema/10 px-2 rounded-xl transition-all">
-                    <div>
-                      <h4 className="font-montserrat font-bold text-sm uppercase tracking-wide text-tienta-teal">
-                        {pr.titulo}
-                      </h4>
-                      <p className="text-xs text-black/70 font-lato leading-relaxed mt-1 max-w-lg font-medium">
-                        {pr.descripcion}
-                      </p>
-                      <div className="flex flex-wrap gap-2 mt-2.5">
-                        {pr.descuento_porcentaje && (
-                          <span className="bg-red-50 text-red-600 px-2.5 py-0.5 rounded text-[10px] font-bold border border-red-100">
-                            🏷 {pr.descuento_porcentaje}% OFF
+                    <div className="flex items-center gap-4">
+                      {pr.imagen_url && (
+                        <div className="w-16 h-16 rounded-xl overflow-hidden border border-black/5 bg-black/5 shrink-0 shadow-sm">
+                          <img src={pr.imagen_url} alt={pr.titulo} className="w-full h-full object-cover" />
+                        </div>
+                      )}
+                      <div>
+                        <h4 className="font-montserrat font-bold text-sm uppercase tracking-wide text-tienta-teal">
+                          {pr.titulo}
+                        </h4>
+                        <p className="text-xs text-black/70 font-lato leading-relaxed mt-1 max-w-lg font-medium">
+                          {pr.descripcion}
+                        </p>
+                        <div className="flex flex-wrap gap-2 mt-2.5">
+                          {pr.descuento_porcentaje && (
+                            <span className="bg-red-50 text-red-600 px-2.5 py-0.5 rounded text-[10px] font-bold border border-red-100">
+                              🏷 {pr.descuento_porcentaje}% OFF
+                            </span>
+                          )}
+                          <span className="bg-tienta-crema text-tienta-goldDark px-2.5 py-0.5 rounded text-[10px] font-bold border border-tienta-gold/20">
+                            📅 {pr.dias_vigencia.join(', ')}
                           </span>
-                        )}
-                        <span className="bg-tienta-crema text-tienta-goldDark px-2.5 py-0.5 rounded text-[10px] font-bold border border-tienta-gold/20">
-                          📅 {pr.dias_vigencia.join(', ')}
-                        </span>
-                        <span className="bg-tienta-teal/5 text-tienta-teal px-2.5 py-0.5 rounded text-[10px] font-bold border border-tienta-teal/10">
-                          👥 Niveles: {pr.niveles_aplicables && pr.niveles_aplicables.length > 0 ? pr.niveles_aplicables.join(', ') : 'Todos'}
-                        </span>
+                          <span className="bg-tienta-teal/5 text-tienta-teal px-2.5 py-0.5 rounded text-[10px] font-bold border border-tienta-teal/10">
+                            👥 Niveles: {pr.niveles_aplicables && pr.niveles_aplicables.length > 0 ? pr.niveles_aplicables.join(', ') : 'Todos'}
+                          </span>
+                        </div>
                       </div>
                     </div>
 

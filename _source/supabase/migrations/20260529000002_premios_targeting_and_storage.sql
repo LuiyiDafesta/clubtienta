@@ -17,25 +17,12 @@ values ('premios', 'premios', true)
 on conflict (id) do nothing;
 
 -- 4. Habilitar políticas de seguridad RLS en storage.objects para el bucket premios
--- NOTA: Para evitar desajustes con cabeceras de sesión del navegador, permitimos operaciones directas sobre el bucket 'premios'
+-- NOTA: Usamos una política 'for all' para evitar conflictos con 'upsert: true' que requiere permisos de inserción, lectura y actualización atómicos.
 
--- Permitir lectura pública a cualquier usuario de internet
-create policy "Acceso público de lectura a fotos"
-  on storage.objects for select
-  using (bucket_id = 'premios');
-
--- Permitir inserción de nuevas fotos pública
-create policy "Permitir carga de fotos pública"
-  on storage.objects for insert
+-- Permitir acceso total (Lectura, Carga, Edición, Eliminación) pública sobre el bucket premios
+create policy "Acceso total bucket premios"
+  on storage.objects for all
+  using (bucket_id = 'premios')
   with check (bucket_id = 'premios');
 
--- Permitir actualización de fotos pública
-create policy "Permitir actualización de fotos pública"
-  on storage.objects for update
-  using (bucket_id = 'premios');
-
--- Permitir eliminación de fotos pública
-create policy "Permitir eliminación de fotos pública"
-  on storage.objects for delete
-  using (bucket_id = 'premios');
 

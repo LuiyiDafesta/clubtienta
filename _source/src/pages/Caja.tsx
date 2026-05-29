@@ -77,10 +77,13 @@ export default function Caja() {
   const [cajeroStats, setCajeroStats] = useState({
     totalVentas: 0,
     totalPuntos: 0,
-    totalCanjes: 0
+    totalCanjes: 0,
+    totalPuntosCanjeados: 0
   })
   const [cajeroRecentTx, setCajeroRecentTx] = useState<any[]>([])
   const [loadingCajeroStats, setLoadingCajeroStats] = useState(false)
+  const [cajeroPage, setCajeroPage] = useState(1)
+  const cajeroItemsPerPage = 5
 
   // Sistema de Notificaciones Premium (Modal y Toasts)
   const [toast, setToast] = useState<{ mostrar: boolean; mensaje: string; tipo: 'success' | 'error' | 'info' }>({
@@ -183,6 +186,7 @@ export default function Caja() {
         let totalVentas = 0
         let totalPuntos = 0
         let totalCanjes = 0
+        let totalPuntosCanjeados = 0
 
         txs.forEach(tx => {
           if (tx.tipo === 'carga_compra') {
@@ -193,15 +197,18 @@ export default function Caja() {
           }
           if (tx.tipo === 'canje_premio') {
             totalCanjes += 1
+            totalPuntosCanjeados += Math.abs(tx.puntos)
           }
         })
 
         setCajeroStats({
           totalVentas,
           totalPuntos,
-          totalCanjes
+          totalCanjes,
+          totalPuntosCanjeados
         })
         setCajeroRecentTx(txs)
+        setCajeroPage(1)
       }
     } catch (err) {
       console.error('Error fetching cashier shift stats:', err)
@@ -265,6 +272,13 @@ export default function Caja() {
     } finally {
       setLoadingSearch(false)
     }
+  }
+
+  const handleCerrarCliente = () => {
+    setCliente(null)
+    setDniBusqueda('')
+    setErrorSearch(null)
+    setHistorial([])
   }
 
   const fetchHistorialCliente = async (clienteId: string) => {
@@ -481,6 +495,15 @@ export default function Caja() {
           >
             {loadingSearch ? 'Buscando...' : 'Buscar Cliente'}
           </button>
+          {cliente && (
+            <button
+              type="button"
+              onClick={handleCerrarCliente}
+              className="px-6 py-4 rounded-full border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 font-montserrat uppercase font-bold text-xs tracking-wider transition-all duration-200 shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+            >
+              Cerrar Socio ✕
+            </button>
+          )}
         </form>
 
         {errorSearch && (
@@ -854,7 +877,7 @@ export default function Caja() {
               </div>
 
               {/* Stats Grid */}
-              <div className="grid grid-cols-3 gap-4 mb-6">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
                 <div className="bg-tienta-crema/40 border border-tienta-gold/25 p-4 rounded-2xl text-center">
                   <span className="text-[10px] uppercase font-montserrat font-bold tracking-wider text-black/50 block mb-1">
                     Vendido ($)
@@ -877,6 +900,14 @@ export default function Caja() {
                   </span>
                   <span className="text-lg sm:text-xl font-montserrat font-extrabold text-tienta-goldDark">
                     {cajeroStats.totalCanjes}
+                  </span>
+                </div>
+                <div className="bg-tienta-crema/40 border border-tienta-gold/25 p-4 rounded-2xl text-center">
+                  <span className="text-[10px] uppercase font-montserrat font-bold tracking-wider text-black/50 block mb-1">
+                    Puntos Canjeados
+                  </span>
+                  <span className="text-lg sm:text-xl font-montserrat font-extrabold text-red-500">
+                    -{cajeroStats.totalPuntosCanjeados}
                   </span>
                 </div>
               </div>
@@ -904,43 +935,72 @@ export default function Caja() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-black/5 font-semibold text-black/80">
-                        {cajeroRecentTx.map((tx) => (
-                          <tr key={tx.id} className="hover:bg-tienta-crema/10">
-                            <td className="py-2.5 text-black/60 text-[11px]">
-                              {new Date(tx.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
-                            </td>
-                            <td className="py-2.5">
-                              {tx.cliente ? (
-                                <span className="block truncate max-w-[120px]">
-                                  {tx.cliente.nombre} {tx.cliente.apellido}
+                        {cajeroRecentTx
+                          .slice((cajeroPage - 1) * cajeroItemsPerPage, cajeroPage * cajeroItemsPerPage)
+                          .map((tx) => (
+                            <tr key={tx.id} className="hover:bg-tienta-crema/10">
+                              <td className="py-2.5 text-black/60 text-[11px]">
+                                {new Date(tx.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                              </td>
+                              <td className="py-2.5">
+                                {tx.cliente ? (
+                                  <span className="block truncate max-w-[120px]">
+                                    {tx.cliente.nombre} {tx.cliente.apellido}
+                                  </span>
+                                ) : (
+                                  <span className="italic text-black/40">-</span>
+                                )}
+                              </td>
+                              <td className="py-2.5">
+                                <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${
+                                  tx.tipo === 'carga_compra' 
+                                    ? 'bg-green-50 text-green-700' 
+                                    : tx.tipo === 'carga_manual' 
+                                      ? 'bg-yellow-50 text-yellow-700' 
+                                      : 'bg-red-50 text-red-700'
+                                }`}>
+                                  {tx.tipo === 'carga_compra' ? 'Compra' : tx.tipo === 'carga_manual' ? 'Manual' : 'Canje'}
                                 </span>
-                              ) : (
-                                <span className="italic text-black/40">-</span>
-                              )}
-                            </td>
-                            <td className="py-2.5">
-                              <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${
-                                tx.tipo === 'carga_compra' 
-                                  ? 'bg-green-50 text-green-700' 
-                                  : tx.tipo === 'carga_manual' 
-                                    ? 'bg-yellow-50 text-yellow-700' 
-                                    : 'bg-red-50 text-red-700'
+                              </td>
+                              <td className="py-2.5 text-right text-black/75">
+                                {tx.importe ? `$${Number(tx.importe).toLocaleString('es-AR')}` : '-'}
+                              </td>
+                              <td className={`py-2.5 text-right font-bold ${
+                                tx.puntos > 0 ? 'text-green-600' : 'text-red-500'
                               }`}>
-                                {tx.tipo === 'carga_compra' ? 'Compra' : tx.tipo === 'carga_manual' ? 'Manual' : 'Canje'}
-                              </span>
-                            </td>
-                            <td className="py-2.5 text-right text-black/75">
-                              {tx.importe ? `$${Number(tx.importe).toLocaleString('es-AR')}` : '-'}
-                            </td>
-                            <td className={`py-2.5 text-right font-bold ${
-                              tx.puntos > 0 ? 'text-green-600' : 'text-red-500'
-                            }`}>
-                              {tx.puntos > 0 ? `+${tx.puntos}` : tx.puntos}
-                            </td>
-                          </tr>
-                        ))}
+                                {tx.puntos > 0 ? `+${tx.puntos}` : tx.puntos}
+                              </td>
+                            </tr>
+                          ))}
                       </tbody>
                     </table>
+
+                    {/* Pagination Controls */}
+                    {cajeroRecentTx.length > cajeroItemsPerPage && (
+                      <div className="flex items-center justify-between mt-4 pt-4 border-t border-black/5">
+                        <span className="text-[11px] text-black/55 font-bold font-montserrat uppercase tracking-wider">
+                          Página {cajeroPage} de {Math.ceil(cajeroRecentTx.length / cajeroItemsPerPage)} ({cajeroRecentTx.length} ops)
+                        </span>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setCajeroPage(prev => Math.max(1, prev - 1))}
+                            disabled={cajeroPage === 1}
+                            className="px-3 py-1 text-[10px] font-montserrat uppercase font-bold tracking-wider rounded-lg border border-black/10 bg-white hover:bg-tienta-crema/35 text-black/60 hover:text-black/85 cursor-pointer disabled:opacity-45 disabled:pointer-events-none"
+                          >
+                            Anterior
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setCajeroPage(prev => Math.min(Math.ceil(cajeroRecentTx.length / cajeroItemsPerPage), prev + 1))}
+                            disabled={cajeroPage === Math.ceil(cajeroRecentTx.length / cajeroItemsPerPage)}
+                            className="px-3 py-1 text-[10px] font-montserrat uppercase font-bold tracking-wider rounded-lg border border-black/10 bg-white hover:bg-tienta-crema/35 text-black/60 hover:text-black/85 cursor-pointer disabled:opacity-45 disabled:pointer-events-none"
+                          >
+                            Siguiente
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

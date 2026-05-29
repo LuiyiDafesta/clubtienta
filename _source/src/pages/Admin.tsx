@@ -169,11 +169,29 @@ export default function Admin() {
     totalVentas: number
     totalPuntos: number
     totalCanjes: number
-    totalVentasHoy: number
+    totalPuntosCanjeados: number
+    totalVentasPeriodo: number
   }
   const [metricasCajeros, setMetricasCajeros] = useState<CajeroMetrica[]>([])
-  const [globalStats, setGlobalStats] = useState({ totalVentas: 0, totalPuntos: 0, totalCanjes: 0, totalVentasHoy: 0 })
+  const [globalStats, setGlobalStats] = useState({ 
+    totalVentas: 0, 
+    totalPuntos: 0, 
+    totalCanjes: 0, 
+    totalPuntosCanjeados: 0, 
+    totalVentasPeriodo: 0 
+  })
   const [loadingMetricas, setLoadingMetricas] = useState(false)
+  
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const d = new Date()
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const r = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${r}`
+  })
+  const [metricScope, setMetricScope] = useState<'diario' | 'mensual' | 'historico'>('diario')
+  const [adminMetricasPage, setAdminMetricasPage] = useState(1)
+  const adminMetricasItemsPerPage = 5
 
   const diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
   const nivelesClub = ['Gold', 'Platinum']
@@ -191,7 +209,7 @@ export default function Admin() {
     } else if (activeTab === 'metricas') {
       fetchMetricas()
     }
-  }, [activeTab])
+  }, [activeTab, selectedDate, metricScope])
 
   const fetchMetricas = async () => {
     setLoadingMetricas(true)
@@ -206,65 +224,88 @@ export default function Admin() {
         .select('tipo, importe, puntos, creado_por, created_at')
 
       if (staffData && txData) {
-        const hoy = new Date()
-        // Principio del día comercial flotante (5:00 AM) en hora local
-        let startOfTodayDate: Date
-        if (hoy.getHours() < 5) {
-          const ayer = new Date(hoy)
-          ayer.setDate(hoy.getDate() - 1)
-          startOfTodayDate = new Date(ayer.getFullYear(), ayer.getMonth(), ayer.getDate(), 5, 0, 0)
-        } else {
-          startOfTodayDate = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), 5, 0, 0)
-        }
-        const startOfToday = startOfTodayDate.getTime()
+        const d = new Date(selectedDate + 'T12:00:00')
+        let startPeriod = 0
+        let endPeriod = Infinity
 
-        let totalVentas = 0
-        let totalPuntos = 0
-        let totalCanjes = 0
-        let totalVentasHoy = 0
+        if (metricScope === 'diario') {
+          // Principio del día comercial flotante (5:00 AM) en hora local
+          startPeriod = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 5, 0, 0).getTime()
+          endPeriod = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 5, 0, 0).getTime()
+        } else if (metricScope === 'mensual') {
+          // Principio del mes calendarizado en hora local
+          startPeriod = new Date(d.getFullYear(), d.getMonth(), 1, 0, 0, 0).getTime()
+          endPeriod = new Date(d.getFullYear(), d.getMonth() + 1, 1, 0, 0, 0).getTime()
+        } else {
+          // Histórico (todos los tiempos)
+          startPeriod = 0
+          endPeriod = Infinity
+        }
+
+        let histVentas = 0
+        
+        let periodVentas = 0
+        let periodPuntos = 0
+        let periodCanjes = 0
+        let periodPuntosCanjeados = 0
 
         // Calcular globales
         txData.forEach(tx => {
           const txTime = new Date(tx.created_at).getTime()
-          const esHoy = txTime >= startOfToday
+          const isCc = tx.tipo === 'carga_compra'
+          const isCp = tx.tipo === 'canje_premio'
+          const imp = Number(tx.importe) || 0
+          const pts = Math.abs(tx.puntos)
 
-          if (tx.tipo === 'carga_compra') {
-            const imp = Number(tx.importe) || 0
-            totalVentas += imp
-            if (esHoy) totalVentasHoy += imp
-          }
-          if (tx.puntos > 0) {
-            totalPuntos += tx.puntos
-          }
-          if (tx.tipo === 'canje_premio') {
-            totalCanjes += 1
+          // Global histórico acumulado
+          if (isCc) histVentas += imp
+
+          // Filtrado del período
+          if (txTime >= startPeriod && txTime < endPeriod) {
+            if (isCc) periodVentas += imp
+            if (tx.puntos > 0) periodPuntos += tx.puntos
+            if (isCp) {
+              periodCanjes += 1
+              periodPuntosCanjeados += pts
+            }
           }
         })
 
-        setGlobalStats({ totalVentas, totalPuntos, totalCanjes, totalVentasHoy })
+        setGlobalStats({ 
+          totalVentas: histVentas, 
+          totalPuntos: periodPuntos, 
+          totalCanjes: periodCanjes, 
+          totalPuntosCanjeados: periodPuntosCanjeados,
+          totalVentasPeriodo: periodVentas 
+        })
 
         // Calcular por operador
         const met: CajeroMetrica[] = staffData.map(m => {
           let cVentas = 0
           let cPuntos = 0
           let cCanjes = 0
-          let cVentasHoy = 0
+          let cPuntosCanjeados = 0
+          let cVentasPeriodo = 0
 
           txData.forEach(tx => {
             if (tx.creado_por === m.id) {
               const txTime = new Date(tx.created_at).getTime()
-              const esHoy = txTime >= startOfToday
+              const isCc = tx.tipo === 'carga_compra'
+              const isCp = tx.tipo === 'canje_premio'
+              const imp = Number(tx.importe) || 0
+              const pts = Math.abs(tx.puntos)
 
-              if (tx.tipo === 'carga_compra') {
-                const imp = Number(tx.importe) || 0
-                cVentas += imp
-                if (esHoy) cVentasHoy += imp
-              }
-              if (tx.puntos > 0) {
-                cPuntos += tx.puntos
-              }
-              if (tx.tipo === 'canje_premio') {
+              // Histórico total del cajero
+              if (isCc) cVentas += imp
+              if (tx.puntos > 0) cPuntos += tx.puntos
+              if (isCp) {
                 cCanjes += 1
+                cPuntosCanjeados += pts
+              }
+
+              // Período filtrado del cajero
+              if (txTime >= startPeriod && txTime < endPeriod) {
+                if (isCc) cVentasPeriodo += imp
               }
             }
           })
@@ -278,11 +319,13 @@ export default function Admin() {
             totalVentas: cVentas,
             totalPuntos: cPuntos,
             totalCanjes: cCanjes,
-            totalVentasHoy: cVentasHoy
+            totalPuntosCanjeados: cPuntosCanjeados,
+            totalVentasPeriodo: cVentasPeriodo
           }
         })
 
         setMetricasCajeros(met)
+        setAdminMetricasPage(1)
       }
     } catch (err) {
       console.error(err)
@@ -1764,24 +1807,85 @@ export default function Admin() {
               </div>
             )}
           </div>
-
         </div>
       )}
 
       {/* TAB CONTENT: ESTADÍSTICAS Y MÉTRICAS DE CAJA */}
       {activeTab === 'metricas' && (
         <div className="space-y-8">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <h2 className="text-lg font-montserrat font-bold tracking-wider text-tienta-teal uppercase flex items-center gap-2">
               <BarChart3 size={18} /> Estadísticas y Rendimiento de Caja
             </h2>
             
             <button
               onClick={fetchMetricas}
-              className="flex items-center gap-1.5 text-xs text-tienta-goldDark font-semibold hover:text-tienta-teal tracking-wider uppercase font-montserrat cursor-pointer"
+              className="flex items-center gap-1.5 text-xs text-tienta-goldDark font-semibold hover:text-tienta-teal tracking-wider uppercase font-montserrat cursor-pointer shrink-0"
             >
               <RefreshCw size={12} className={loadingMetricas ? 'animate-spin' : ''} /> Actualizar Datos
             </button>
+          </div>
+
+          {/* Filtros de Fecha y Rango de Estadísticas */}
+          <div className="bg-white border border-black/5 rounded-3xl p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row justify-between items-center gap-4 text-left">
+            <div className="flex flex-col gap-1 w-full sm:w-auto">
+              <span className="text-[10px] font-montserrat uppercase font-bold tracking-widest text-black/50">Rango de Consulta</span>
+              <div className="flex gap-1.5 bg-tienta-crema/25 border border-black/5 p-1 rounded-2xl mt-1.5 w-fit">
+                <button
+                  type="button"
+                  onClick={() => setMetricScope('diario')}
+                  className={`px-4 py-2 rounded-xl text-[10px] font-montserrat uppercase font-bold tracking-wider transition-all duration-200 cursor-pointer ${
+                    metricScope === 'diario' 
+                      ? 'bg-tienta-teal text-white shadow-xs font-black' 
+                      : 'text-black/60 hover:text-black/85 font-semibold'
+                  }`}
+                >
+                  Diario
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMetricScope('mensual')}
+                  className={`px-4 py-2 rounded-xl text-[10px] font-montserrat uppercase font-bold tracking-wider transition-all duration-200 cursor-pointer ${
+                    metricScope === 'mensual' 
+                      ? 'bg-tienta-teal text-white shadow-xs font-black' 
+                      : 'text-black/60 hover:text-black/85 font-semibold'
+                  }`}
+                >
+                  Mensual
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMetricScope('historico')}
+                  className={`px-4 py-2 rounded-xl text-[10px] font-montserrat uppercase font-bold tracking-wider transition-all duration-200 cursor-pointer ${
+                    metricScope === 'historico' 
+                      ? 'bg-tienta-teal text-white shadow-xs font-black' 
+                      : 'text-black/60 hover:text-black/85 font-semibold'
+                  }`}
+                >
+                  Histórico
+                </button>
+              </div>
+            </div>
+
+            {metricScope !== 'historico' && (
+              <div className="flex flex-col gap-1 w-full sm:w-auto">
+                <span className="text-[10px] font-montserrat uppercase font-bold tracking-widest text-black/50">
+                  {metricScope === 'diario' ? 'Día Seleccionado' : 'Mes de Referencia'}
+                </span>
+                <input
+                  type={metricScope === 'diario' ? 'date' : 'month'}
+                  value={metricScope === 'diario' ? selectedDate : selectedDate.substring(0, 7)}
+                  onChange={(e) => {
+                    if (metricScope === 'diario') {
+                      setSelectedDate(e.target.value)
+                    } else {
+                      setSelectedDate(`${e.target.value}-01`)
+                    }
+                  }}
+                  className="rounded-xl border border-black/10 bg-white px-3 py-1.5 text-xs font-semibold focus:border-tienta-gold focus:outline-none text-black h-[42px] font-mono mt-1.5 w-full sm:w-48 cursor-pointer"
+                />
+              </div>
+            )}
           </div>
 
           {loadingMetricas ? (
@@ -1793,56 +1897,64 @@ export default function Admin() {
               {/* Resumen Global Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 
-                {/* Venta Global */}
+                {/* Venta del Periodo */}
                 <div className="bg-tienta-teal text-white border border-white/5 rounded-3xl p-6 shadow-md relative overflow-hidden">
                   <div className="absolute -bottom-10 -right-10 w-28 h-28 rounded-full bg-white/5 blur-xl"></div>
                   <span className="text-[10px] font-montserrat uppercase tracking-[0.2em] text-tienta-gold font-extrabold">
-                    Ventas Totales
+                    {metricScope === 'diario' 
+                      ? 'Ventas del Día 🍦' 
+                      : metricScope === 'mensual' 
+                        ? 'Ventas del Mes 📅' 
+                        : 'Ventas Históricas 🏆'}
                   </span>
                   <span className="text-3xl font-montserrat font-extrabold block mt-2 tracking-tight">
-                    ${globalStats.totalVentas.toLocaleString('es-AR')}
+                    ${globalStats.totalVentasPeriodo.toLocaleString('es-AR')}
                   </span>
                   <span className="text-[10px] text-white/70 block mt-2 font-bold uppercase tracking-wider font-montserrat">
-                    Monto Histórico Acumulado
+                    {metricScope === 'diario' 
+                      ? 'Turno Comercial Flotante' 
+                      : metricScope === 'mensual' 
+                        ? 'Consolidado Mensual' 
+                        : 'Monto Histórico Total'}
                   </span>
                 </div>
 
-                {/* Ventas de Hoy */}
+                {/* Venta Global Baseline */}
                 <div className="bg-white border border-black/5 rounded-3xl p-6 shadow-sm relative overflow-hidden">
                   <span className="text-[10px] font-montserrat uppercase tracking-[0.2em] text-tienta-teal font-extrabold">
-                    Ventas de Hoy 🍦
+                    Ventas Globales 📈
                   </span>
-                  <span className="text-3xl font-montserrat font-extrabold block mt-2 tracking-tight text-tienta-goldDark">
-                    ${globalStats.totalVentasHoy.toLocaleString('es-AR')}
+                  <span className="text-3xl font-montserrat font-extrabold block mt-2 tracking-tight text-tienta-teal">
+                    ${globalStats.totalVentas.toLocaleString('es-AR')}
                   </span>
                   <span className="text-[10px] text-black/50 block mt-2 font-bold uppercase tracking-wider font-montserrat">
-                    Turno Diario en Curso
+                    Total Histórico del Negocio
                   </span>
                 </div>
 
-                {/* Puntos Otorgados */}
+                {/* Puntos Emitidos */}
                 <div className="bg-white border border-black/5 rounded-3xl p-6 shadow-sm relative overflow-hidden">
                   <span className="text-[10px] font-montserrat uppercase tracking-[0.2em] text-black/60 font-extrabold">
-                    Puntos Emitidos
+                    Puntos Emitidos Período
                   </span>
                   <span className="text-3xl font-montserrat font-extrabold block mt-2 tracking-tight text-tienta-teal">
                     +{globalStats.totalPuntos.toLocaleString('es-AR')}
                   </span>
                   <span className="text-[10px] text-black/50 block mt-2 font-bold uppercase tracking-wider font-montserrat">
-                    Fidelización Entregada
+                    Fidelización en el Rango
                   </span>
                 </div>
 
-                {/* Canjes Totales */}
+                {/* Canjes Totales con Puntos Canjeados */}
                 <div className="bg-white border border-black/5 rounded-3xl p-6 shadow-sm relative overflow-hidden">
                   <span className="text-[10px] font-montserrat uppercase tracking-[0.2em] text-black/60 font-extrabold">
-                    Premios Canjeados
+                    Premios Canjeados Período
                   </span>
                   <span className="text-3xl font-montserrat font-extrabold block mt-2 tracking-tight text-tienta-goldDark">
                     {globalStats.totalCanjes.toLocaleString('es-AR')}
                   </span>
-                  <span className="text-[10px] text-black/50 block mt-2 font-bold uppercase tracking-wider font-montserrat">
-                    Helados y Premios Entregados
+                  <span className="text-[10px] text-red-500 block mt-2 font-extrabold uppercase tracking-wider font-montserrat">
+                    -{globalStats.totalPuntosCanjeados.toLocaleString('es-AR')} puntos canjeados
                   </span>
                 </div>
 
@@ -1863,46 +1975,78 @@ export default function Admin() {
                         <tr className="border-b border-black/10 text-black/70 font-montserrat uppercase text-xs tracking-wider">
                           <th className="pb-3 font-extrabold">Operador / Personal</th>
                           <th className="pb-3 font-extrabold">Rol</th>
-                          <th className="pb-3 font-extrabold text-right">Venta Hoy</th>
+                          <th className="pb-3 font-extrabold text-right">Venta Período</th>
                           <th className="pb-3 font-extrabold text-right">Venta Histórica</th>
                           <th className="pb-3 font-extrabold text-right">Puntos Cargados</th>
                           <th className="pb-3 font-extrabold text-right">Canjes Realizados</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-black/5 font-semibold text-black/85">
-                        {metricasCajeros.map((m) => (
-                          <tr key={m.id} className="hover:bg-tienta-crema/20">
-                            <td className="py-4">
-                              <span className="font-bold text-black text-sm block">
-                                {m.nombre} {m.apellido}
-                              </span>
-                              <span className="text-[10px] text-black/50 font-mono block mt-0.5">{m.email}</span>
-                            </td>
-                            <td className="py-4">
-                              <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold ${
-                                m.rol === 'admin' 
-                                  ? 'bg-tienta-teal/15 text-tienta-teal border border-tienta-teal/20' 
-                                  : 'bg-tienta-gold/15 text-tienta-goldDark border border-tienta-gold/25'
-                              }`}>
-                                {m.rol === 'admin' ? 'Administrador' : 'Cajero / Operador'}
-                              </span>
-                            </td>
-                            <td className="py-4 text-right text-tienta-goldDark font-extrabold text-sm">
-                              ${m.totalVentasHoy.toLocaleString('es-AR')}
-                            </td>
-                            <td className="py-4 text-right text-black/70 font-bold">
-                              ${m.totalVentas.toLocaleString('es-AR')}
-                            </td>
-                            <td className="py-4 text-right text-green-600 font-bold text-sm">
-                              +{m.totalPuntos.toLocaleString('es-AR')}
-                            </td>
-                            <td className="py-4 text-right text-black/80 font-bold">
-                              {m.totalCanjes}
-                            </td>
-                          </tr>
-                        ))}
+                        {metricasCajeros
+                          .slice((adminMetricasPage - 1) * adminMetricasItemsPerPage, adminMetricasPage * adminMetricasItemsPerPage)
+                          .map((m) => (
+                            <tr key={m.id} className="hover:bg-tienta-crema/20">
+                              <td className="py-4">
+                                <span className="font-bold text-black text-sm block">
+                                  {m.nombre} {m.apellido}
+                                </span>
+                                <span className="text-[10px] text-black/50 font-mono block mt-0.5">{m.email}</span>
+                              </td>
+                              <td className="py-4">
+                                <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold ${
+                                  m.rol === 'admin' 
+                                    ? 'bg-tienta-teal/15 text-tienta-teal border border-tienta-teal/20' 
+                                    : 'bg-tienta-gold/15 text-tienta-goldDark border border-tienta-gold/25'
+                                }`}>
+                                  {m.rol === 'admin' ? 'Administrador' : 'Cajero / Operador'}
+                                </span>
+                              </td>
+                              <td className="py-4 text-right text-tienta-goldDark font-extrabold text-sm">
+                                ${m.totalVentasPeriodo.toLocaleString('es-AR')}
+                              </td>
+                              <td className="py-4 text-right text-black/70 font-bold">
+                                ${m.totalVentas.toLocaleString('es-AR')}
+                              </td>
+                              <td className="py-4 text-right text-green-600 font-bold text-sm">
+                                +{m.totalPuntos.toLocaleString('es-AR')}
+                              </td>
+                              <td className="py-4 text-right">
+                                <div className="flex flex-col items-end">
+                                  <span className="text-black/80 font-bold text-sm">{m.totalCanjes} canjes</span>
+                                  <span className="text-[10px] text-red-500 font-bold font-mono">-{m.totalPuntosCanjeados} pts</span>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
                       </tbody>
                     </table>
+
+                    {/* Pagination Controls */}
+                    {metricasCajeros.length > adminMetricasItemsPerPage && (
+                      <div className="flex items-center justify-between mt-4 pt-4 border-t border-black/5">
+                        <span className="text-[11px] text-black/55 font-bold font-montserrat uppercase tracking-wider">
+                          Página {adminMetricasPage} de {Math.ceil(metricasCajeros.length / adminMetricasItemsPerPage)} ({metricasCajeros.length} operadores)
+                        </span>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setAdminMetricasPage(prev => Math.max(1, prev - 1))}
+                            disabled={adminMetricasPage === 1}
+                            className="px-3 py-1 text-[10px] font-montserrat uppercase font-bold tracking-wider rounded-lg border border-black/10 bg-white hover:bg-tienta-crema/35 text-black/60 hover:text-black/85 cursor-pointer disabled:opacity-45 disabled:pointer-events-none"
+                          >
+                            Anterior
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setAdminMetricasPage(prev => Math.min(Math.ceil(metricasCajeros.length / adminMetricasItemsPerPage), prev + 1))}
+                            disabled={adminMetricasPage === Math.ceil(metricasCajeros.length / adminMetricasItemsPerPage)}
+                            className="px-3 py-1 text-[10px] font-montserrat uppercase font-bold tracking-wider rounded-lg border border-black/10 bg-white hover:bg-tienta-crema/35 text-black/60 hover:text-black/85 cursor-pointer disabled:opacity-45 disabled:pointer-events-none"
+                          >
+                            Siguiente
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

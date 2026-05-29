@@ -35,6 +35,7 @@ export default function Crm() {
       let queryBuilder = supabase
         .from('profiles')
         .select('*', { count: 'exact' })
+        .eq('rol', 'client')
         
       if (busqueda.trim()) {
         const searchVal = busqueda.trim()

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { 
   Settings, Gift, Percent, ShieldCheck, Plus, Trash2, 
-  Calendar, RefreshCw, Layers
+  Calendar, RefreshCw, Layers, Edit
 } from 'lucide-react'
 
 // Interfaces
@@ -78,6 +78,7 @@ export default function Admin() {
   const [loadingCreateStaff, setLoadingCreateStaff] = useState(false)
   const [successCreateStaff, setSuccessCreateStaff] = useState(false)
   const [errorCreateStaff, setErrorCreateStaff] = useState<string | null>(null)
+  const [editingStaffId, setEditingStaffId] = useState<string | null>(null)
 
   // --- PREMIOS ESTADOS ---
   const [premios, setPremios] = useState<Premio[]>([])
@@ -332,78 +333,123 @@ export default function Admin() {
     setSuccessCreateStaff(false)
 
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-
-      if (!supabaseUrl || !supabaseAnonKey) {
-        throw new Error('Variables de entorno de Supabase no configuradas.')
-      }
-
-      // Crear cliente temporal para no desloguear al admin
-      const { createClient } = await import('@supabase/supabase-js')
-      const tempClient = createClient(supabaseUrl, supabaseAnonKey, {
-        auth: {
-          persistSession: false,
-          autoRefreshToken: false,
-          detectSessionInUrl: false
-        }
-      })
-
-      // Registrar usuario en auth
-      const { data: authData, error: authError } = await tempClient.auth.signUp({
-        email: staffEmail,
-        password: staffPassword,
-        options: {
-          data: {
-            nombre: staffNombre,
-            apellido: staffApellido
-          }
-        }
-      })
-
-      if (authError) throw authError
-      if (!authData?.user) {
-        throw new Error('No se pudo crear el usuario en auth.')
-      }
-
-      const newUserId = authData.user.id
-
-      // Crear perfil en public.profiles sin DNI (null)
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: newUserId,
-          dni: null,
-          nombre: staffNombre,
-          apellido: staffApellido,
-          email: staffEmail,
-          rol: staffRol,
-          puntos_actuales: 0,
-          nivel: 'Standard'
+      if (editingStaffId) {
+        // --- MODO EDICIÓN ---
+        const { error: updateError } = await supabase.rpc('actualizar_operador_por_admin', {
+          p_usuario_id: editingStaffId,
+          p_nombre: staffNombre,
+          p_apellido: staffApellido,
+          p_email: staffEmail,
+          p_rol: staffRol
         })
 
-      if (profileError) throw profileError
+        if (updateError) throw updateError
 
-      // Invocar RPC para asignar el rol en auth.users
-      const { error: rpcError } = await supabase.rpc('establecer_rol_usuario', {
-        p_usuario_id: newUserId,
-        p_rol: staffRol
-      })
+        setSuccessCreateStaff(true)
+        setEditingStaffId(null)
+        setStaffNombre('')
+        setStaffApellido('')
+        setStaffEmail('')
+        setStaffPassword('')
+        setStaffRol('cajero')
+        fetchStaff()
+      } else {
+        // --- MODO CREACIÓN ---
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-      if (rpcError) throw rpcError
+        if (!supabaseUrl || !supabaseAnonKey) {
+          throw new Error('Variables de entorno de Supabase no configuradas.')
+        }
 
-      setSuccessCreateStaff(true)
-      setStaffNombre('')
-      setStaffApellido('')
-      setStaffEmail('')
-      setStaffPassword('')
-      fetchStaff()
+        // Crear cliente temporal para no desloguear al admin
+        const { createClient } = await import('@supabase/supabase-js')
+        const tempClient = createClient(supabaseUrl, supabaseAnonKey, {
+          auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+            detectSessionInUrl: false
+          }
+        })
+
+        // Registrar usuario en auth
+        const { data: authData, error: authError } = await tempClient.auth.signUp({
+          email: staffEmail,
+          password: staffPassword,
+          options: {
+            data: {
+              nombre: staffNombre,
+              apellido: staffApellido
+            }
+          }
+        })
+
+        if (authError) throw authError
+        if (!authData?.user) {
+          throw new Error('No se pudo crear el usuario en auth.')
+        }
+
+        const newUserId = authData.user.id
+
+        // Crear perfil en public.profiles sin DNI (null)
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: newUserId,
+            dni: null,
+            nombre: staffNombre,
+            apellido: staffApellido,
+            email: staffEmail,
+            rol: staffRol,
+            puntos_actuales: 0,
+            nivel: 'Standard'
+          })
+
+        if (profileError) throw profileError
+
+        // Invocar RPC para asignar el rol en auth.users
+        const { error: rpcError } = await supabase.rpc('establecer_rol_usuario', {
+          p_usuario_id: newUserId,
+          p_rol: staffRol
+        })
+
+        if (rpcError) throw rpcError
+
+        setSuccessCreateStaff(true)
+        setStaffNombre('')
+        setStaffApellido('')
+        setStaffEmail('')
+        setStaffPassword('')
+        fetchStaff()
+      }
     } catch (err: any) {
       console.error(err)
-      setErrorCreateStaff(err.message || 'Error al registrar el operador.')
+      setErrorCreateStaff(err.message || 'Error al procesar la solicitud.')
     } finally {
       setLoadingCreateStaff(false)
     }
+  }
+
+  const handleIniciarEditarStaff = (member: StaffMember) => {
+    setEditingStaffId(member.id)
+    setStaffNombre(member.nombre)
+    setStaffApellido(member.apellido)
+    setStaffEmail(member.email)
+    setStaffRol(member.rol)
+    setStaffPassword('') // Opcional / No requerido durante edición
+    setErrorCreateStaff(null)
+    setSuccessCreateStaff(false)
+  }
+
+  const handleCancelarEditarStaff = () => {
+    setEditingStaffId(null)
+    setStaffNombre('')
+    setStaffApellido('')
+    setStaffEmail('')
+    setStaffPassword('')
+    setStaffRol('cajero')
+    setErrorCreateStaff(null)
+    setSuccessCreateStaff(false)
   }
 
   const handleEliminarOperador = async (userId: string) => {
@@ -1119,12 +1165,12 @@ export default function Admin() {
           {/* Formulario de Alta */}
           <div className="lg:col-span-1 bg-white border border-black/5 rounded-3xl p-6 shadow-sm text-left h-fit">
             <h2 className="text-lg font-montserrat font-bold tracking-wider text-tienta-teal uppercase mb-6 flex items-center gap-2">
-              <Layers size={18} /> Alta de Personal (Staff)
+              <Layers size={18} /> {editingStaffId ? 'Editar Personal (Staff)' : 'Alta de Personal (Staff)'}
             </h2>
 
             {successCreateStaff && (
               <div className="mb-6 p-4 rounded-2xl bg-green-50 border border-green-100 text-green-600 text-sm flex items-center gap-2 font-semibold">
-                <span>¡Personal dado de alta con éxito!</span>
+                <span>¡Operación realizada con éxito!</span>
               </div>
             )}
 
@@ -1177,19 +1223,21 @@ export default function Admin() {
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
-                  Contraseña de Acceso
-                </label>
-                <input
-                  type="password"
-                  required
-                  placeholder="Mínimo 6 caracteres"
-                  value={staffPassword}
-                  onChange={(e) => setStaffPassword(e.target.value)}
-                  className="input-tienta py-2 text-sm font-semibold text-black font-lato"
-                />
-              </div>
+              {!editingStaffId && (
+                <div>
+                  <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
+                    Contraseña de Acceso
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Mínimo 6 caracteres"
+                    value={staffPassword}
+                    onChange={(e) => setStaffPassword(e.target.value)}
+                    className="input-tienta py-2 text-sm font-semibold text-black font-lato"
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
@@ -1205,13 +1253,32 @@ export default function Admin() {
                 </select>
               </div>
 
-              <button
-                type="submit"
-                disabled={loadingCreateStaff}
-                className="w-full btn-tienta-teal py-3 text-sm font-bold tracking-wider cursor-pointer mt-4 uppercase font-montserrat"
-              >
-                {loadingCreateStaff ? 'Registrando...' : 'Dar de Alta Personal'}
-              </button>
+              {editingStaffId ? (
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="submit"
+                    disabled={loadingCreateStaff}
+                    className="flex-1 btn-tienta-teal py-3 text-xs font-bold tracking-wider cursor-pointer uppercase font-montserrat"
+                  >
+                    {loadingCreateStaff ? 'Guardando...' : 'Guardar Cambios'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCancelarEditarStaff}
+                    className="px-4 py-3 rounded-full border border-black/15 text-[10px] font-montserrat uppercase tracking-wider font-extrabold hover:bg-black/5 cursor-pointer text-black"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={loadingCreateStaff}
+                  className="w-full btn-tienta-teal py-3 text-sm font-bold tracking-wider cursor-pointer mt-4 uppercase font-montserrat"
+                >
+                  {loadingCreateStaff ? 'Registrando...' : 'Dar de Alta Personal'}
+                </button>
+              )}
             </form>
           </div>
 
@@ -1270,13 +1337,22 @@ export default function Admin() {
                         <td className="py-4 text-center">
                           {/* No permitir que el admin se borre a sí mismo */}
                           {member.email !== 'lsnetinformatica2024@gmail.com' ? (
-                            <button
-                              onClick={() => handleEliminarOperador(member.id)}
-                              className="text-black/40 hover:text-red-600 p-2 rounded-full hover:bg-red-50 transition-colors cursor-pointer"
-                              title="Baja de Personal"
-                            >
-                              <Trash2 size={16} />
-                            </button>
+                            <div className="flex justify-center items-center gap-1">
+                              <button
+                                onClick={() => handleIniciarEditarStaff(member)}
+                                className="text-tienta-teal hover:text-tienta-tealDark hover:bg-tienta-teal/5 p-2 rounded-full transition-all cursor-pointer"
+                                title="Editar Personal"
+                              >
+                                <Edit size={15} />
+                              </button>
+                              <button
+                                onClick={() => handleEliminarOperador(member.id)}
+                                className="text-black/40 hover:text-red-600 p-2 rounded-full hover:bg-red-50 transition-colors cursor-pointer"
+                                title="Baja de Personal"
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            </div>
                           ) : (
                             <span className="text-[10px] text-black/35 font-bold italic">Propietario</span>
                           )}

@@ -56,3 +56,61 @@ begin
     where id = p_usuario_id;
 end;
 $$ language plpgsql security definer;
+
+-- 7. Función segura para que administradores editen los datos de otros operadores
+create or replace function public.actualizar_operador_por_admin(
+    p_usuario_id uuid,
+    p_nombre text,
+    p_apellido text,
+    p_email text,
+    p_rol text
+)
+returns void as $$
+begin
+    -- 1. Validar que el llamador sea administrador en auth.users
+    if coalesce((auth.jwt()->'app_metadata'->>'role'), '') <> 'admin' then
+        raise exception 'No autorizado. Solo administradores pueden modificar el staff.';
+    end if;
+
+    -- 2. Impedir modificar al administrador propietario
+    if p_usuario_id = (select id from public.profiles where email = 'lsnetinformatica2024@gmail.com') then
+        raise exception 'No está permitido modificar al administrador propietario.';
+    end if;
+
+    -- 3. Validar rol solicitado
+    if p_rol not in ('cajero', 'admin') then
+        raise exception 'Rol no válido. Debe ser cajero o admin.';
+    end if;
+
+    -- 4. Actualizar auth.users (email, metadatos y app_metadata)
+    update auth.users
+    set email = p_email,
+        raw_user_meta_data = jsonb_set(
+            coalesce(raw_user_meta_data, '{}'::jsonb), 
+            '{nombre}', 
+            to_jsonb(p_nombre)
+        ),
+        app_metadata = jsonb_set(
+            coalesce(app_metadata, '{}'::jsonb), 
+            '{role}', 
+            to_jsonb(p_rol)
+        )
+    where id = p_usuario_id;
+    
+    update auth.users
+    set raw_user_meta_data = jsonb_set(
+            coalesce(raw_user_meta_data, '{}'::jsonb), 
+            '{apellido}', 
+            to_jsonb(p_apellido)
+        )
+    where id = p_usuario_id;
+
+    -- 5. Actualizar public.profiles
+    update public.profiles
+    set nombre = p_nombre,
+        apellido = p_apellido,
+        email = p_email,
+        rol = p_rol
+    where id = p_usuario_id;
+end;
+$$ language plpgsql security definer;

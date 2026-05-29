@@ -1489,7 +1489,7 @@ export default function Admin() {
                         </p>
                         <div className="flex flex-wrap gap-2 mt-2.5">
                           {pr.descuento_porcentaje && (
-                            <span className="bg-red-50 text-red-600 px-2.5 py-0.5 rounded text-[10px] font-bold border border-red-100">
+                            <span className="bg-red-50 text-red-600 px-2.5 py-0.5 rounded text-[10px] font-bold border border-red-100 whitespace-nowrap shrink-0">
                               🏷 {pr.descuento_porcentaje}% OFF
                             </span>
                           )}

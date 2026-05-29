@@ -357,12 +357,12 @@ export default function Dashboard() {
                             <img src={pr.imagen_url} alt={pr.titulo} className="w-full h-full object-cover" />
                           </div>
                         )}
-                        <div className="flex justify-between items-start mb-2">
+                        <div className="flex justify-between items-start gap-3 mb-2">
                           <h4 className="font-montserrat font-bold text-sm uppercase tracking-wide text-tienta-teal">
                             {pr.titulo}
                           </h4>
                           {pr.descuento_porcentaje && (
-                            <span className="bg-red-50 text-red-600 px-2.5 py-0.5 rounded text-[10px] font-bold border border-red-100 font-montserrat">
+                            <span className="bg-red-50 text-red-600 px-2.5 py-0.5 rounded text-[10px] font-bold border border-red-100 font-montserrat whitespace-nowrap shrink-0">
                               🏷 {pr.descuento_porcentaje}% OFF
                             </span>
                           )}

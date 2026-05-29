@@ -114,3 +114,26 @@ begin
     where id = p_usuario_id;
 end;
 $$ language plpgsql security definer;
+
+-- 8. Función segura para que administradores eliminen por completo a otros operadores de auth.users y profiles
+create or replace function public.eliminar_operador_por_admin(
+    p_usuario_id uuid
+)
+returns void as $$
+begin
+    -- 1. Validar que el llamador sea administrador en auth.users
+    if coalesce((auth.jwt()->'app_metadata'->>'role'), '') <> 'admin' then
+        raise exception 'No autorizado. Solo administradores pueden eliminar el staff.';
+    end if;
+
+    -- 2. Impedir eliminar al administrador propietario
+    if p_usuario_id = (select id from public.profiles where email = 'lsnetinformatica2024@gmail.com') then
+        raise exception 'No está permitido eliminar al administrador propietario.';
+    end if;
+
+    -- 3. Eliminar de auth.users (esto provocará un cascade delete en public.profiles)
+    delete from auth.users
+    where id = p_usuario_id;
+end;
+$$ language plpgsql security definer;
+

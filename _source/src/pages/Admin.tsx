@@ -453,14 +453,16 @@ export default function Admin() {
   }
 
   const handleEliminarOperador = async (userId: string) => {
-    if (!window.confirm('¿Estás seguro de que deseas eliminar este operador? Se eliminará su perfil de acceso.')) return
+    if (!window.confirm('¿Estás seguro de que deseas eliminar este operador? Se eliminará por completo del sistema.')) return
     try {
-      const { error } = await supabase.from('profiles').delete().eq('id', userId)
+      const { error } = await supabase.rpc('eliminar_operador_por_admin', {
+        p_usuario_id: userId
+      })
       if (error) throw error
       fetchStaff()
     } catch (err: any) {
       console.error(err)
-      alert('Error al desactivar/eliminar operador: ' + err.message)
+      alert('Error al eliminar operador: ' + err.message)
     }
   }
 

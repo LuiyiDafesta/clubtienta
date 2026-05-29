@@ -67,11 +67,22 @@ export default function Caja() {
   const [loadingManual, setLoadingManual] = useState(false)
   const [successManual, setSuccessManual] = useState(false)
 
+  // Rol del operador logueado
+  const [userRole, setUserRole] = useState<string | null>(null)
+
   // Carga de Premios y Configuración al montar
   useEffect(() => {
     fetchPremios()
     fetchConfiguracion()
+    checkUserRole()
   }, [])
+
+  const checkUserRole = async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session?.user) {
+      setUserRole(session.user.app_metadata?.role || 'client')
+    }
+  }
 
   const fetchPremios = async () => {
     const { data, error } = await supabase
@@ -220,6 +231,11 @@ export default function Caja() {
   const handleCargarManual = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!cliente || !puntosManuales || !detalleManual) return
+
+    if (userRole !== 'admin') {
+      alert('Acceso denegado. Solo los administradores de ClubTienta pueden realizar cargas manuales.')
+      return
+    }
 
     setLoadingManual(true)
     setSuccessManual(false)
@@ -512,61 +528,63 @@ export default function Caja() {
               </form>
             </div>
 
-            {/* Operación: Carga Manual */}
-            <div className="bg-white border border-black/5 rounded-3xl p-6 sm:p-8 shadow-sm text-left">
-              <div className="flex items-center gap-2 mb-6">
-                <FileText className="text-tienta-goldDark" size={20} />
-                <h4 className="font-montserrat font-extrabold text-base tracking-wider uppercase text-tienta-goldDark">
-                  Carga Manual / Ajuste de Puntos Especial
-                </h4>
+            {/* Operación: Carga Manual (Solo Administradores) */}
+            {userRole === 'admin' && (
+              <div className="bg-white border border-black/5 rounded-3xl p-6 sm:p-8 shadow-sm text-left">
+                <div className="flex items-center gap-2 mb-6">
+                  <FileText className="text-tienta-goldDark" size={20} />
+                  <h4 className="font-montserrat font-extrabold text-base tracking-wider uppercase text-tienta-goldDark">
+                    Carga Manual / Ajuste de Puntos Especial
+                  </h4>
+                </div>
+
+                {successManual && (
+                  <div className="mb-6 p-4 rounded-2xl bg-green-50 border border-green-100 text-green-600 text-sm flex items-center gap-2">
+                    <CheckCircle2 size={16} />
+                    <span className="font-semibold">¡Ajuste de puntos aplicado exitosamente!</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleCargarManual} className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="sm:col-span-1">
+                    <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
+                      Puntos a Asignar (Usa negativo para restar)
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      placeholder="Ej. 100 o -50"
+                      value={puntosManuales}
+                      onChange={(e) => setPuntosManuales(e.target.value)}
+                      className="input-tienta py-2.5 text-black font-semibold text-base"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-1">
+                    <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
+                      Concepto / Motivo de Auditoría
+                    </label>
+                    <textarea
+                      required
+                      placeholder="Ej. Promo especial apertura / compensación por retraso"
+                      value={detalleManual}
+                      onChange={(e) => setDetalleManual(e.target.value)}
+                      className="w-full rounded-2xl border border-black/10 bg-white px-4 py-2.5 text-sm focus:border-tienta-gold focus:outline-none focus:ring-1 focus:ring-tienta-gold transition-all duration-300 placeholder:text-black/50 text-black h-12 resize-none font-medium"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <button
+                      type="submit"
+                      disabled={loadingManual}
+                      className="w-full btn-tienta-outline py-3.5 text-sm font-bold tracking-wider cursor-pointer uppercase font-montserrat text-tienta-goldDark border-tienta-goldDark hover:bg-tienta-goldDark/5"
+                    >
+                      {loadingManual ? 'Procesando...' : 'Aplicar Carga Manual / Ajuste'}
+                    </button>
+                  </div>
+                </form>
               </div>
-
-              {successManual && (
-                <div className="mb-6 p-4 rounded-2xl bg-green-50 border border-green-100 text-green-600 text-sm flex items-center gap-2">
-                  <CheckCircle2 size={16} />
-                  <span className="font-semibold">¡Ajuste de puntos aplicado exitosamente!</span>
-                </div>
-              )}
-
-              <form onSubmit={handleCargarManual} className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="sm:col-span-1">
-                  <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
-                    Puntos a Asignar (Usa negativo para restar)
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    placeholder="Ej. 100 o -50"
-                    value={puntosManuales}
-                    onChange={(e) => setPuntosManuales(e.target.value)}
-                    className="input-tienta py-2.5 text-black font-semibold text-base"
-                  />
-                </div>
-
-                <div className="sm:col-span-1">
-                  <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
-                    Concepto / Motivo de Auditoría
-                  </label>
-                  <textarea
-                    required
-                    placeholder="Ej. Promo especial apertura / compensación por retraso"
-                    value={detalleManual}
-                    onChange={(e) => setDetalleManual(e.target.value)}
-                    className="w-full rounded-2xl border border-black/10 bg-white px-4 py-2.5 text-sm focus:border-tienta-gold focus:outline-none focus:ring-1 focus:ring-tienta-gold transition-all duration-300 placeholder:text-black/50 text-black h-12 resize-none font-medium"
-                  />
-                </div>
-
-                <div className="sm:col-span-2">
-                  <button
-                    type="submit"
-                    disabled={loadingManual}
-                    className="w-full btn-tienta-outline py-3.5 text-sm font-bold tracking-wider cursor-pointer uppercase font-montserrat text-tienta-goldDark border-tienta-goldDark hover:bg-tienta-goldDark/5"
-                  >
-                    {loadingManual ? 'Procesando...' : 'Aplicar Carga Manual / Ajuste'}
-                  </button>
-                </div>
-              </form>
-            </div>
+            )}
 
             {/* Historial Reciente de Operaciones */}
             <div className="bg-white border border-black/5 rounded-3xl p-6 sm:p-8 shadow-sm text-left">

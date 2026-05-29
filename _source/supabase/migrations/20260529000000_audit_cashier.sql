@@ -137,3 +137,29 @@ begin
 end;
 $$ language plpgsql security definer;
 
+-- 9. Políticas de seguridad estrictas en transacciones para impedir que cajeros/operadores inserten cargas manuales
+drop policy if exists "Admins/Cajeros gestionan transacciones" on public.transacciones;
+
+create policy "Admins/Cajeros ven todas las transacciones"
+    on public.transacciones for select
+    using (
+        auth.jwt()->'app_metadata'->>'role' = 'admin' or 
+        auth.jwt()->'app_metadata'->>'role' = 'cajero' or
+        auth.jwt()->>'role' = 'service_role'
+    );
+
+create policy "Cajeros/Admins insertan compras y canjes"
+    on public.transacciones for insert
+    with check (
+        (auth.jwt()->'app_metadata'->>'role' = 'admin' or auth.jwt()->'app_metadata'->>'role' = 'cajero' or auth.jwt()->>'role' = 'service_role')
+        and tipo in ('carga_compra', 'canje_premio')
+    );
+
+create policy "Solo admins insertan cargas manuales"
+    on public.transacciones for insert
+    with check (
+        (auth.jwt()->'app_metadata'->>'role' = 'admin' or auth.jwt()->>'role' = 'service_role')
+        and tipo = 'carga_manual'
+    );
+
+

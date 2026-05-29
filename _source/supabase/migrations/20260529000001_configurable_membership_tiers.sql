@@ -12,18 +12,19 @@ values
 on conflict (clave) do update 
 set valor = excluded.valor;
 
--- 2. Migrar perfiles existentes al nuevo esquema de dos niveles ('Gold' y 'Platinum')
+-- 2. Modificar la columna default y remover restricción check antigua de la tabla public.profiles
+alter table public.profiles alter column nivel set default 'Gold';
+alter table public.profiles drop constraint if exists profiles_nivel_check;
+
+-- 3. Migrar perfiles existentes al nuevo esquema de dos niveles ('Gold' y 'Platinum') ahora que no hay restricción
 update public.profiles
 set nivel = case 
-    when nivel in ('Standard', 'Oro') then 'Gold'
-    when nivel = 'Platino' then 'Platinum'
+    when nivel in ('Standard', 'Oro', 'Gold') then 'Gold'
+    when nivel in ('Platino', 'Platinum') then 'Platinum'
     else 'Gold'
 end;
 
--- 3. Modificar la columna default y la restricción check de la tabla public.profiles
-alter table public.profiles alter column nivel set default 'Gold';
-
-alter table public.profiles drop constraint if exists profiles_nivel_check;
+-- 4. Aplicar la nueva restricción check
 alter table public.profiles add constraint profiles_nivel_check check (nivel in ('Gold', 'Platinum'));
 
 -- 4. Reescribir el trigger de puntos y niveles para usar consumo en pesos

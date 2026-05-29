@@ -207,7 +207,16 @@ export default function Admin() {
 
       if (staffData && txData) {
         const hoy = new Date()
-        const startOfToday = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()).getTime()
+        // Principio del día comercial flotante (5:00 AM) en hora local
+        let startOfTodayDate: Date
+        if (hoy.getHours() < 5) {
+          const ayer = new Date(hoy)
+          ayer.setDate(hoy.getDate() - 1)
+          startOfTodayDate = new Date(ayer.getFullYear(), ayer.getMonth(), ayer.getDate(), 5, 0, 0)
+        } else {
+          startOfTodayDate = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), 5, 0, 0)
+        }
+        const startOfToday = startOfTodayDate.getTime()
 
         let totalVentas = 0
         let totalPuntos = 0

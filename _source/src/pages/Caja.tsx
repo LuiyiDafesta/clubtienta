@@ -156,8 +156,16 @@ export default function Caja() {
 
       const userId = session.user.id
       const hoy = new Date()
-      // Principio del día de hoy en hora local
-      const startOfToday = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()).toISOString()
+      // Principio del día comercial flotante (5:00 AM) en hora local
+      let startOfTodayDate: Date
+      if (hoy.getHours() < 5) {
+        const ayer = new Date(hoy)
+        ayer.setDate(hoy.getDate() - 1)
+        startOfTodayDate = new Date(ayer.getFullYear(), ayer.getMonth(), ayer.getDate(), 5, 0, 0)
+      } else {
+        startOfTodayDate = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), 5, 0, 0)
+      }
+      const startOfToday = startOfTodayDate.toISOString()
 
       const { data: txs, error } = await supabase
         .from('transacciones')

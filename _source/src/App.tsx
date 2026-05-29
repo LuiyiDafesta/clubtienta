@@ -4,6 +4,7 @@ import { supabase } from './lib/supabase'
 import Navbar from './components/Navbar'
 import Login from './pages/Login'
 import Registro from './pages/Registro'
+import Recuperar from './pages/Recuperar'
 import Caja from './pages/Caja'
 import Admin from './pages/Admin'
 import Crm from './pages/Crm'
@@ -76,6 +77,7 @@ function App() {
             {/* Rutas Públicas */}
             <Route path="/" element={<Login />} />
             <Route path="/registro" element={<Registro />} />
+            <Route path="/recuperar" element={<Recuperar />} />
 
             {/* Rutas Protegidas - Línea de Caja (Cajeros y Admins) */}
             <Route

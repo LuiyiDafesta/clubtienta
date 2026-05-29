@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { User, Mail, Lock, Phone, CreditCard, ArrowRight, ArrowLeft, Calendar } from 'lucide-react'
+import { User, Mail, Lock, CreditCard, ArrowRight, ArrowLeft, Calendar, MessageSquare } from 'lucide-react'
 
 export default function Registro() {
   const navigate = useNavigate()
@@ -31,10 +31,63 @@ export default function Registro() {
     setErrorMsg(null)
     setSuccessMsg(null)
 
-    // Validar DNI argentino (numérico, 7 a 9 dígitos)
-    const cleanDni = dni.replace(/\D/g, '')
-    if (cleanDni.length < 7 || cleanDni.length > 10) {
-      setErrorMsg('Por favor ingresá un DNI argentino válido (entre 7 y 10 dígitos numéricos).')
+    // 1. Validar Correo Electrónico
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email.trim())) {
+      setErrorMsg('Por favor ingresá un correo electrónico válido (ej. nombre@ejemplo.com).')
+      setLoading(false)
+      return
+    }
+
+    // 2. Validar DNI argentino (numérico) y normalizar rellenando ceros a la izquierda
+    let cleanDni = dni.replace(/\D/g, '')
+    if (cleanDni.length === 0) {
+      setErrorMsg('Por favor ingresá tu número de DNI.')
+      setLoading(false)
+      return
+    }
+    // Rellenar con ceros a la izquierda para garantizar siempre 8 dígitos (ej. 4555555 -> 04555555)
+    cleanDni = cleanDni.padStart(8, '0')
+    if (cleanDni.length > 10) {
+      setErrorMsg('El número de DNI no puede superar los 10 dígitos.')
+      setLoading(false)
+      return
+    }
+
+    // 3. Validar y Normalizar WhatsApp para Argentina (549 + 10 dígitos)
+    let cleanWhatsapp = telefono.replace(/\D/g, '')
+    if (!cleanWhatsapp) {
+      setErrorMsg('El número de WhatsApp es obligatorio.')
+      setLoading(false)
+      return
+    }
+
+    // Si ingresó el número con el formato local, quitar cualquier prefijo sobrante
+    if (cleanWhatsapp.startsWith('0')) {
+      cleanWhatsapp = cleanWhatsapp.substring(1)
+    }
+    if (cleanWhatsapp.length === 12 && cleanWhatsapp.substring(3, 5) === '15') {
+      cleanWhatsapp = cleanWhatsapp.substring(0, 3) + cleanWhatsapp.substring(5)
+    }
+
+    // Formatear al formato final internacional de WhatsApp de Argentina: 549 + 10 dígitos
+    if (cleanWhatsapp.startsWith('549') && cleanWhatsapp.length === 13) {
+      // Formato completo correcto
+    } else if (cleanWhatsapp.startsWith('54') && cleanWhatsapp.length === 12) {
+      // Agregar el 9 de móvil
+      cleanWhatsapp = '549' + cleanWhatsapp.substring(2)
+    } else if (cleanWhatsapp.length === 10) {
+      // Agregar prefijo 549
+      cleanWhatsapp = '549' + cleanWhatsapp
+    } else {
+      setErrorMsg('Por favor ingresá un número de WhatsApp válido de 10 dígitos (código de área + número, ej. 3416123456, sin el 0 y sin el 15).')
+      setLoading(false)
+      return
+    }
+
+    // 4. Validar Fecha de Nacimiento (Obligatoria)
+    if (!fechaNacimiento) {
+      setErrorMsg('La fecha de nacimiento es obligatoria.')
       setLoading(false)
       return
     }
@@ -76,9 +129,9 @@ export default function Registro() {
             dni: cleanDni,
             nombre,
             apellido,
-            telefono,
+            telefono: cleanWhatsapp,
             email,
-            fecha_nacimiento: fechaNacimiento || null,
+            fecha_nacimiento: fechaNacimiento,
             puntos_actuales: 0,
             nivel: 'Standard'
           })
@@ -117,9 +170,9 @@ export default function Registro() {
                 dni: cleanDni,
                 nombre,
                 apellido,
-                telefono,
+                telefono: cleanWhatsapp,
                 email,
-                fecha_nacimiento: fechaNacimiento || null,
+                fecha_nacimiento: fechaNacimiento,
                 referido_por_dni: cleanReferidoDni || null,
                 timestamp: new Date().toISOString()
               })
@@ -249,11 +302,11 @@ export default function Registro() {
               </div>
             </div>
 
-            {/* Grid de DNI y Teléfono */}
+            {/* Grid de DNI y WhatsApp */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-montserrat uppercase tracking-wider font-extrabold text-tienta-teal mb-2">
-                  DNI (Único para Caja)
+                  DNI (Socio)
                 </label>
                 <div className="relative">
                   <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-black/50">
@@ -262,7 +315,7 @@ export default function Registro() {
                   <input
                     type="text"
                     required
-                    placeholder="Sin puntos ni espacios"
+                    placeholder="Ej. 45555555"
                     value={dni}
                     onChange={(e) => setDni(e.target.value)}
                     className="input-tienta pl-11 py-2.5 text-black font-semibold text-sm"
@@ -272,15 +325,16 @@ export default function Registro() {
 
               <div>
                 <label className="block text-xs font-montserrat uppercase tracking-wider font-extrabold text-tienta-teal mb-2">
-                  Teléfono
+                  WhatsApp (Formato de Mensaje)
                 </label>
                 <div className="relative">
                   <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-black/50">
-                    <Phone size={14} />
+                    <MessageSquare size={14} />
                   </span>
                   <input
                     type="tel"
-                    placeholder="Ej. 3416123456"
+                    required
+                    placeholder="Ej. 3416123456 (cód. área)"
                     value={telefono}
                     onChange={(e) => setTelefono(e.target.value)}
                     className="input-tienta pl-11 py-2.5 text-black font-semibold text-sm"
@@ -293,7 +347,7 @@ export default function Registro() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-montserrat uppercase tracking-wider font-extrabold text-tienta-teal mb-2">
-                  Fecha de Nacimiento (Opcional)
+                  Fecha de Nacimiento
                 </label>
                 <div className="relative">
                   <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-black/50">
@@ -301,6 +355,7 @@ export default function Registro() {
                   </span>
                   <input
                     type="date"
+                    required
                     value={fechaNacimiento}
                     onChange={(e) => setFechaNacimiento(e.target.value)}
                     className="input-tienta pl-11 py-2.5 text-black font-semibold text-sm"

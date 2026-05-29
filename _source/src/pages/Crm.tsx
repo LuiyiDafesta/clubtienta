@@ -16,6 +16,7 @@ interface ClienteCRM {
   puntos_actuales: number
   created_at: string
   fecha_nacimiento?: string | null
+  nivel_manual?: boolean
 }
 
 export default function Crm() {
@@ -74,6 +75,45 @@ export default function Crm() {
     setTimeout(() => {
       fetchClientes()
     }, 50)
+  }
+
+  const handleCambiarNivel = async (clienteId: string, value: string) => {
+    try {
+      const isManual = value !== 'auto'
+      const updates: any = {
+        nivel_manual: isManual
+      }
+      if (isManual) {
+        updates.nivel = value
+      }
+
+      const { error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', clienteId)
+
+      if (error) throw error
+
+      setClientes(prev => prev.map(c => {
+        if (c.id === clienteId) {
+          return {
+            ...c,
+            nivel_manual: isManual,
+            nivel: isManual ? value : c.nivel
+          }
+        }
+        return c
+      }))
+
+      if (!isManual) {
+        setTimeout(() => {
+          fetchClientes()
+        }, 150)
+      }
+    } catch (err: any) {
+      console.error('Error al cambiar nivel:', err)
+      alert('Error al actualizar membresía: ' + err.message)
+    }
   }
 
   return (
@@ -188,13 +228,24 @@ export default function Crm() {
                         <div className="text-black/60 mt-0.5">{c.telefono || 'Sin teléfono'}</div>
                       </td>
                       <td className="py-4 px-6">
-                        <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold ${
-                          c.nivel === 'Gold' 
-                            ? 'bg-tienta-gold/15 text-tienta-goldDark border border-tienta-gold/25' 
-                            : 'bg-tienta-teal/10 text-tienta-teal border border-tienta-teal/20'
-                        }`}>
-                          {c.nivel}
-                        </span>
+                        <div className="flex flex-col gap-1">
+                          <select
+                            value={c.nivel_manual ? c.nivel : 'auto'}
+                            onChange={(e) => handleCambiarNivel(c.id, e.target.value)}
+                            className="bg-transparent text-xs font-bold font-montserrat text-tienta-teal focus:outline-none border-b border-black/10 pb-0.5 w-28 cursor-pointer uppercase tracking-wider"
+                          >
+                            <option value="auto">🔄 Automático</option>
+                            <option value="Gold">👑 Oro (Manual)</option>
+                            <option value="Platinum">💎 Platino (Manual)</option>
+                          </select>
+                          <span className={`text-[9px] font-bold font-montserrat uppercase tracking-wider ${
+                            c.nivel_manual 
+                              ? 'text-tienta-goldDark' 
+                              : 'text-black/40'
+                          }`}>
+                            {c.nivel_manual ? 'Fijado a mano' : `Activo: ${c.nivel}`}
+                          </span>
+                        </div>
                       </td>
                       <td className="py-4 px-6 text-right font-extrabold text-tienta-teal text-base font-montserrat">
                         {c.puntos_actuales} <span className="text-[10px] font-bold text-black/65">pts</span>

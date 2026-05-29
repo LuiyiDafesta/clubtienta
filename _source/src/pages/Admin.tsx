@@ -458,7 +458,7 @@ export default function Admin() {
       const compressedFile = new File([compressedBlob], file.name, { type: 'image/jpeg' })
 
       const fileExt = 'jpg'
-      const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`
+      const fileName = `promo-${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`
       
       const { error } = await supabase.storage
         .from('premios')

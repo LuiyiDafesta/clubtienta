@@ -162,6 +162,7 @@ export default function Admin() {
   const [puntosBienvenida, setPuntosBienvenida] = useState('50')
   const [puntosReferido, setPuntosReferido] = useState('100')
   const [webhookN8n, setWebhookN8n] = useState('')
+  const [webhookEmails, setWebhookEmails] = useState('')
   const [limiteGold, setLimiteGold] = useState('0')
   const [limitePlatinum, setLimitePlatinum] = useState('20000')
   const [bonoGold, setBonoGold] = useState('0')
@@ -459,6 +460,7 @@ export default function Admin() {
       const pb = data.find(c => c.clave === 'puntos_bienvenida')
       const pr = data.find(c => c.clave === 'puntos_referido')
       const wh = data.find(c => c.clave === 'webhook_n8n')
+      const whe = data.find(c => c.clave === 'webhook_emails')
       const lg = data.find(c => c.clave === 'limite_consumo_gold')
       const lp = data.find(c => c.clave === 'limite_consumo_platinum')
       const bg = data.find(c => c.clave === 'bono_puntos_gold')
@@ -469,6 +471,7 @@ export default function Admin() {
       if (pb) setPuntosBienvenida(pb.valor)
       if (pr) setPuntosReferido(pr.valor)
       if (wh) setWebhookN8n(wh.valor)
+      if (whe) setWebhookEmails(whe.valor)
       if (lg) setLimiteGold(lg.valor)
       if (lp) setLimitePlatinum(lp.valor)
       if (bg) setBonoGold(bg.valor)
@@ -490,6 +493,7 @@ export default function Admin() {
         { clave: 'puntos_bienvenida', valor: puntosBienvenida },
         { clave: 'puntos_referido', valor: puntosReferido },
         { clave: 'webhook_n8n', valor: webhookN8n },
+        { clave: 'webhook_emails', valor: webhookEmails },
         { clave: 'limite_consumo_gold', valor: limiteGold },
         { clave: 'limite_consumo_platinum', valor: limitePlatinum },
         { clave: 'bono_puntos_gold', valor: bonoGold },
@@ -1204,6 +1208,22 @@ export default function Admin() {
               />
               <span className="text-xs text-black/65 mt-1.5 block leading-relaxed font-medium">
                 URL de webhook a la que se enviará automáticamente un POST JSON cada vez que un cliente se asocie.
+              </span>
+            </div>
+
+            <div className="pt-4 border-t border-black/5">
+              <label className="block text-sm font-montserrat uppercase tracking-wider font-bold text-tienta-teal mb-2">
+                URL de Webhook para Emails Transaccionales
+              </label>
+              <input
+                type="url"
+                placeholder="https://tu-instancia-n8n.com/g/webhook/emails..."
+                value={webhookEmails}
+                onChange={(e) => setWebhookEmails(e.target.value)}
+                className="input-tienta text-black py-3 text-base font-semibold w-full"
+              />
+              <span className="text-xs text-black/65 mt-1.5 block leading-relaxed font-medium">
+                URL del webhook que procesará los emails transaccionales del Club (registro, contraseña, suma de puntos, canjes, etc.).
               </span>
             </div>
 

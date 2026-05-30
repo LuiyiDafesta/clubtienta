@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { User, Mail, Lock, CreditCard, ArrowRight, ArrowLeft, Calendar, MessageSquare } from 'lucide-react'
+import { enviarEmailTransaccional } from '../lib/emails'
 
 export default function Registro() {
   const navigate = useNavigate()
@@ -151,6 +152,24 @@ export default function Registro() {
         if (rpcError) {
           console.error('Error al procesar referido:', rpcError)
         }
+
+        // Obtener el valor de puntos de bienvenida de configuraciones para reflejarlo en el email
+        let welcomePts = 50
+        try {
+          const { data: configPts } = await supabase
+            .from('configuraciones')
+            .select('valor')
+            .eq('clave', 'puntos_bienvenida')
+            .maybeSingle()
+          if (configPts && configPts.valor) welcomePts = Number(configPts.valor)
+        } catch (e) {
+          console.error(e)
+        }
+
+        // Enviar email transaccional de bienvenida
+        enviarEmailTransaccional('registro_usuario', authData.user.id, {
+          puntos_bienvenida: welcomePts
+        })
 
         // 5. DISPARAR WEBHOOK SI ESTÁ CONFIGURADO
         try {

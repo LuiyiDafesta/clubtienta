@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { Search, IceCream, RefreshCw, ShoppingCart, Gift, FileText, CheckCircle2, AlertCircle, Filter, ChevronLeft, ChevronRight } from 'lucide-react'
+import { enviarEmailTransaccional } from '../lib/emails'
 
 // Interfaces
 interface Cliente {
@@ -443,6 +444,9 @@ export default function Caja() {
         if (promoError) throw promoError
       }
 
+      const ticketFacturaVal = ticketCompra.trim()
+      const promoTituloVal = selectedPromo?.titulo || null
+
       setSuccessCompra(true)
       setImporteCompra('')
       setTicketCompra('')
@@ -452,6 +456,15 @@ export default function Caja() {
       // Recargar datos actualizados del cliente
       await recargarCliente()
       await fetchCajeroTurno()
+
+      // Enviar correo transaccional de compra
+      enviarEmailTransaccional('suma_puntos', cliente.id, {
+        ticket_factura: ticketFacturaVal,
+        importe: neto,
+        descuento_aplicado: desc || null,
+        puntos: puntosCalculados,
+        promo_titulo: promoTituloVal
+      })
 
       setTimeout(() => setSuccessCompra(false), 3000)
 
@@ -494,12 +507,21 @@ export default function Caja() {
 
       if (error) throw error
 
+      const puntosAjustados = Number(puntosManuales)
+      const detalleAjuste = detalleManual.trim()
+
       setSuccessManual(true)
       setPuntosManuales('')
       setDetalleManual('')
       
       await recargarCliente()
       await fetchCajeroTurno()
+
+      // Enviar correo transaccional de ajuste manual
+      enviarEmailTransaccional('ajuste_manual', cliente.id, {
+        puntos: puntosAjustados,
+        detalle: detalleAjuste
+      })
 
       setTimeout(() => setSuccessManual(false), 3000)
 
@@ -546,6 +568,12 @@ export default function Caja() {
           await recargarCliente()
           await fetchPremios() // Recargar stock en frontend
           await fetchCajeroTurno()
+
+          // Enviar correo transaccional de canje
+          enviarEmailTransaccional('canje_premio', cliente.id, {
+            premio_nombre: premio.nombre,
+            puntos: -premio.puntos_requeridos
+          })
 
         } catch (err: any) {
           console.error(err)

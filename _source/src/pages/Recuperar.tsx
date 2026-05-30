@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { Lock, ArrowRight, CheckCircle2 } from 'lucide-react'
+import { enviarEmailTransaccional } from '../lib/emails'
 
 export default function Recuperar() {
   const navigate = useNavigate()
@@ -40,6 +41,16 @@ export default function Recuperar() {
     try {
       const { error } = await supabase.auth.updateUser({ password: password })
       if (error) throw error
+
+      // Enviar correo transaccional de cambio de clave
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          enviarEmailTransaccional('cambio_contrasena', user.id, {})
+        }
+      } catch (e) {
+        console.error('Error al enviar email de cambio de contraseña:', e)
+      }
 
       setSuccessMsg('¡Contraseña restablecida con éxito! Iniciando sesión...')
       setTimeout(() => {

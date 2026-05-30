@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { User, Mail, Lock, CreditCard, ArrowRight, ArrowLeft, Calendar, MessageSquare } from 'lucide-react'
+import { User, Mail, Lock, CreditCard, ArrowRight, ArrowLeft, Calendar, MessageSquare, Eye, EyeOff } from 'lucide-react'
 import { enviarEmailTransaccional } from '../lib/emails'
 
 export default function Registro() {
@@ -20,11 +20,33 @@ export default function Registro() {
   const [telefono, setTelefono] = useState('')
   const [fechaNacimiento, setFechaNacimiento] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [referidoDni, setReferidoDni] = useState(queryRef)
   
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
+
+  const handleDniChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '')
+    if (value.length <= 8) {
+      setDni(value)
+    }
+  }
+
+  const handleTelefonoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '')
+    if (value.length <= 10) {
+      setTelefono(value)
+    }
+  }
+
+  const handleReferidoDniChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '')
+    if (value.length <= 8) {
+      setReferidoDni(value)
+    }
+  }
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -40,20 +62,15 @@ export default function Registro() {
       return
     }
 
-    // 2. Validar DNI argentino (numérico) y normalizar rellenando ceros a la izquierda
+    // 2. Validar DNI argentino (numérico)
     let cleanDni = dni.replace(/\D/g, '')
-    if (cleanDni.length === 0) {
-      setErrorMsg('Por favor ingresá tu número de DNI.')
+    if (cleanDni.length < 7 || cleanDni.length > 8) {
+      setErrorMsg('Por favor ingresá un número de DNI válido de 7 u 8 dígitos (solo números).')
       setLoading(false)
       return
     }
-    // Rellenar con ceros a la izquierda para garantizar siempre 8 dígitos (ej. 4555555 -> 04555555)
+    // Rellenar con ceros a la izquierda para garantizar siempre 8 dígitos en la base de datos (ej. 8765432 -> 08765432)
     cleanDni = cleanDni.padStart(8, '0')
-    if (cleanDni.length > 10) {
-      setErrorMsg('El número de DNI no puede superar los 10 dígitos.')
-      setLoading(false)
-      return
-    }
 
     // 3. Validar y Normalizar WhatsApp para Argentina (549 + 10 dígitos)
     let cleanWhatsapp = telefono.replace(/\D/g, '')
@@ -63,28 +80,24 @@ export default function Registro() {
       return
     }
 
-    // Si ingresó el número con el formato local, quitar cualquier prefijo sobrante
+    // Quitar 0 inicial si existe
     if (cleanWhatsapp.startsWith('0')) {
       cleanWhatsapp = cleanWhatsapp.substring(1)
     }
-    if (cleanWhatsapp.length === 12 && cleanWhatsapp.substring(3, 5) === '15') {
-      cleanWhatsapp = cleanWhatsapp.substring(0, 3) + cleanWhatsapp.substring(5)
+    // Quitar 15 si se ingresó
+    if (cleanWhatsapp.startsWith('15')) {
+      cleanWhatsapp = cleanWhatsapp.substring(2)
     }
 
-    // Formatear al formato final internacional de WhatsApp de Argentina: 549 + 10 dígitos
-    if (cleanWhatsapp.startsWith('549') && cleanWhatsapp.length === 13) {
-      // Formato completo correcto
-    } else if (cleanWhatsapp.startsWith('54') && cleanWhatsapp.length === 12) {
-      // Agregar el 9 de móvil
-      cleanWhatsapp = '549' + cleanWhatsapp.substring(2)
-    } else if (cleanWhatsapp.length === 10) {
-      // Agregar prefijo 549
-      cleanWhatsapp = '549' + cleanWhatsapp
-    } else {
-      setErrorMsg('Por favor ingresá un número de WhatsApp válido de 10 dígitos (código de área + número, ej. 3416123456, sin el 0 y sin el 15).')
+    // El número restante debe tener exactamente 10 dígitos
+    if (cleanWhatsapp.length !== 10) {
+      setErrorMsg('Por favor ingresá un número de WhatsApp válido de 10 dígitos (código de área + número, sin el 0 y sin el 15).')
       setLoading(false)
       return
     }
+
+    // Formatear al formato final internacional de WhatsApp de Argentina: 549 + 10 dígitos
+    cleanWhatsapp = '549' + cleanWhatsapp
 
     // 4. Validar Fecha de Nacimiento (Obligatoria)
     if (!fechaNacimiento) {
@@ -334,9 +347,9 @@ export default function Registro() {
                   <input
                     type="text"
                     required
-                    placeholder="Ej. 45555555"
+                    placeholder="Solo números (7 u 8 dígitos)"
                     value={dni}
-                    onChange={(e) => setDni(e.target.value)}
+                    onChange={handleDniChange}
                     className="input-tienta pl-11 py-2.5 text-black font-semibold text-sm"
                   />
                 </div>
@@ -344,19 +357,22 @@ export default function Registro() {
 
               <div>
                 <label className="block text-xs font-montserrat uppercase tracking-wider font-extrabold text-tienta-teal mb-2">
-                  WhatsApp (Formato de Mensaje)
+                  WhatsApp (Número sin 0 ni 15)
                 </label>
-                <div className="relative">
-                  <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-black/50">
+                <div className="relative flex items-center">
+                  <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-black/50 pointer-events-none">
                     <MessageSquare size={14} />
+                  </span>
+                  <span className="absolute left-10 text-sm font-semibold text-black/60 font-montserrat pointer-events-none">
+                    +54 9
                   </span>
                   <input
                     type="tel"
                     required
-                    placeholder="Ej. 3416123456 (cód. área)"
+                    placeholder="Ej. 3416123456"
                     value={telefono}
-                    onChange={(e) => setTelefono(e.target.value)}
-                    className="input-tienta pl-11 py-2.5 text-black font-semibold text-sm"
+                    onChange={handleTelefonoChange}
+                    className="input-tienta pl-24 py-2.5 text-black font-semibold text-sm w-full"
                   />
                 </div>
               </div>
@@ -394,7 +410,7 @@ export default function Registro() {
                     type="text"
                     placeholder="DNI de tu amigo"
                     value={referidoDni}
-                    onChange={(e) => setReferidoDni(e.target.value)}
+                    onChange={handleReferidoDniChange}
                     className="input-tienta pl-11 py-2.5 text-black font-semibold text-sm"
                   />
                 </div>
@@ -431,13 +447,20 @@ export default function Registro() {
                   <Lock size={14} />
                 </span>
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   required
                   placeholder="Mínimo 6 caracteres"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="input-tienta pl-11 py-2.5 text-black font-semibold text-sm"
+                  className="input-tienta pl-11 pr-10 py-2.5 text-black font-semibold text-sm w-full"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-black/40 hover:text-tienta-teal transition-colors cursor-pointer"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
             </div>
 

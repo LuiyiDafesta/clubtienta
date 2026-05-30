@@ -14,7 +14,7 @@ export default function Navbar() {
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.user) {
         setUserEmail(session.user.email || null)
-        setUserRole(session.user.app_metadata?.role || null)
+        setUserRole(session.user.app_metadata?.role || 'client')
       }
     }
     getUser()
@@ -22,7 +22,7 @@ export default function Navbar() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         setUserEmail(session.user.email || null)
-        setUserRole(session.user.app_metadata?.role || null)
+        setUserRole(session.user.app_metadata?.role || 'client')
       } else {
         setUserEmail(null)
         setUserRole(null)

@@ -377,9 +377,13 @@ export async function enviarEmailTransaccional(
 
     let cliente = clientePreloaded
 
-    // 2. Obtener datos detallados del cliente si no vienen pre-cargados
-    if (!cliente) {
-      console.log('[emails.ts] Cliente no precargado. Buscando en DB para ID:', clienteId)
+    // Para eventos de puntos donde la DB se acaba de actualizar mediante triggers,
+    // es crucial forzar una lectura fresca de la base de datos para obtener el balance final real
+    // y evitar problemas de retraso del estado asíncrono de React en el frontend.
+    const requiereFetchFresco = ['suma_puntos', 'canje_premio', 'ajuste_manual'].includes(evento)
+
+    if (!cliente || requiereFetchFresco) {
+      console.log(`[emails.ts] Obteniendo datos frescos de la DB para evento: ${evento}, cliente: ${clienteId}`)
       const { data: dbCliente, error: clientError } = await supabase
         .from('profiles')
         .select('*')
@@ -387,14 +391,13 @@ export async function enviarEmailTransaccional(
         .maybeSingle()
 
       if (clientError) {
-        console.error('[emails.ts] Error al obtener datos del cliente de la DB:', clientError)
-        return
+        console.error('[emails.ts] Error al obtener datos frescos del cliente de la DB:', clientError)
+        // Si falló la consulta pero tenemos un objeto precargado, lo usamos de fallback
+        if (!cliente) return
+      } else if (dbCliente) {
+        cliente = dbCliente
+        console.log('[emails.ts] Datos de cliente frescos obtenidos con éxito. Puntos:', dbCliente.puntos_actuales)
       }
-      if (!dbCliente) {
-        console.error('[emails.ts] No se encontró el cliente en profiles de la DB.')
-        return
-      }
-      cliente = dbCliente
     } else {
       console.log('[emails.ts] Utilizando datos de cliente precargados:', cliente)
     }

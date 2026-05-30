@@ -450,28 +450,40 @@ export default function Dashboard() {
             {historial.length === 0 ? (
               <p className="text-sm text-black/65 py-6 text-center font-medium">Todavía no registrás consumos.</p>
             ) : (
-              <div className="space-y-3">
-                {historial.map((tr) => (
-                  <div key={tr.id} className="flex justify-between items-center py-2 border-b border-black/5 last:border-b-0">
-                    <div className="text-left max-w-[170px] truncate">
-                      <span className="text-sm font-bold block text-black">
-                        {tr.tipo === 'carga_compra' ? 'Compra en Local' : tr.tipo === 'carga_manual' ? 'Premio/Ajuste' : 'Premio Canjeado'}
-                      </span>
-                      <span className="text-sm text-black/75 block mt-0.5 truncate font-medium">{tr.detalle}</span>
+              <>
+                <div className="space-y-3">
+                  {historial.map((tr) => (
+                    <div key={tr.id} className="flex justify-between items-center py-2 border-b border-black/5 last:border-b-0">
+                      <div className="text-left max-w-[170px] truncate">
+                        <span className="text-sm font-bold block text-black">
+                          {tr.tipo === 'carga_compra' ? 'Compra en Local' : tr.tipo === 'carga_manual' ? 'Premio/Ajuste' : 'Premio Canjeado'}
+                        </span>
+                        <span className="text-sm text-black/75 block mt-0.5 truncate font-medium">{tr.detalle}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className={`text-base font-extrabold font-montserrat ${
+                          tr.puntos > 0 ? 'text-green-600' : 'text-red-500'
+                        }`}>
+                          {tr.puntos > 0 ? `+${tr.puntos}` : tr.puntos}
+                        </span>
+                        <span className="text-xs text-black/70 block mt-0.5 font-semibold">
+                          {new Date(tr.created_at).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}
+                        </span>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <span className={`text-base font-extrabold font-montserrat ${
-                        tr.puntos > 0 ? 'text-green-600' : 'text-red-500'
-                      }`}>
-                        {tr.puntos > 0 ? `+${tr.puntos}` : tr.puntos}
-                      </span>
-                      <span className="text-xs text-black/70 block mt-0.5 font-semibold">
-                        {new Date(tr.created_at).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+                
+                <div className="mt-5 pt-4 border-t border-black/5">
+                  <button
+                    onClick={() => navigate('/movimientos')}
+                    className="w-full flex items-center justify-center gap-2 bg-tienta-crema/40 hover:bg-tienta-gold/20 text-tienta-teal py-3 rounded-2xl text-xs font-montserrat uppercase tracking-[0.12em] font-extrabold transition-all duration-300 shadow-sm active:scale-95 cursor-pointer border border-tienta-gold/10"
+                  >
+                    <Activity size={14} className="text-tienta-goldDark" />
+                    <span>Ver Todos los Movimientos</span>
+                  </button>
+                </div>
+              </>
             )}
           </div>
 

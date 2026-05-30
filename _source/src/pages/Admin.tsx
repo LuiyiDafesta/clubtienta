@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { 
   Settings, Gift, Percent, ShieldCheck, Plus, Trash2, 
   Calendar, RefreshCw, Layers, Edit, BarChart3,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, Share2
 } from 'lucide-react'
 
 // Interfaces
@@ -100,7 +100,32 @@ const compressImage = (file: File, maxWidth = 800, maxHeight = 800, quality = 0.
 }
 
 export default function Admin() {
-  const [activeTab, setActiveTab] = useState<'config' | 'premios' | 'promos' | 'auditoria' | 'staff' | 'metricas'>('config')
+  const [activeTab, setActiveTab] = useState<'config' | 'premios' | 'promos' | 'auditoria' | 'referidos' | 'staff' | 'metricas'>('config')
+
+  // --- REFERIDOS ESTADOS ---
+  interface ReferidoRegistro {
+    id: string
+    created_at: string
+    puntos_referente: number
+    puntos_referido: number
+    referente: {
+      nombre: string
+      apellido: string
+      dni: string
+      email: string
+    }
+    referido: {
+      nombre: string
+      apellido: string
+      dni: string
+      email: string
+    }
+  }
+  const [referidos, setReferidos] = useState<ReferidoRegistro[]>([])
+  const [loadingReferidos, setLoadingReferidos] = useState(false)
+  const [filtroReferidosQuery, setFiltroReferidosQuery] = useState('')
+  const [referidosPage, setReferidosPage] = useState(0)
+  const referidosItemsPerPage = 10
 
   // --- CONFIGURACIÓN ESTADOS ---
   const [valorPunto, setValorPunto] = useState('200')
@@ -211,6 +236,8 @@ export default function Admin() {
       fetchStaff()
     } else if (activeTab === 'metricas') {
       fetchMetricas()
+    } else if (activeTab === 'referidos') {
+      fetchReferidos()
     }
   }, [activeTab, selectedDate, metricScope])
 
@@ -334,6 +361,32 @@ export default function Admin() {
       console.error(err)
     } finally {
       setLoadingMetricas(false)
+    }
+  }
+
+  const fetchReferidos = async () => {
+    setLoadingReferidos(true)
+    try {
+      const { data, error } = await supabase
+        .from('referidos')
+        .select(`
+          id,
+          created_at,
+          puntos_referente,
+          puntos_referido,
+          referente:referente_id (nombre, apellido, dni, email),
+          referido:referido_id (nombre, apellido, dni, email)
+        `)
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      if (data) {
+        setReferidos(data as any[])
+      }
+    } catch (err) {
+      console.error('Error al cargar referidos:', err)
+    } finally {
+      setLoadingReferidos(false)
     }
   }
 
@@ -828,7 +881,7 @@ export default function Admin() {
       </div>
 
       {/* Visual Navigation Dashboard Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3 mb-8">
         <button
           onClick={() => setActiveTab('config')}
           className={`flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl text-[10px] font-montserrat uppercase tracking-wider font-extrabold transition-all duration-300 border cursor-pointer shadow-xs ${
@@ -887,6 +940,18 @@ export default function Admin() {
         >
           <Layers size={14} className={activeTab === 'staff' ? 'text-tienta-gold' : 'text-black/40'} />
           <span className="truncate">Personal</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('referidos')}
+          className={`flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl text-[10px] font-montserrat uppercase tracking-wider font-extrabold transition-all duration-300 border cursor-pointer shadow-xs ${
+            activeTab === 'referidos' 
+              ? 'bg-tienta-teal text-white border-tienta-teal shadow-[0_4px_12px_rgba(2,97,99,0.2)] scale-102 font-black' 
+              : 'bg-white border-black/5 hover:bg-tienta-crema/40 text-black/60 hover:text-black/85 font-bold'
+          }`}
+        >
+          <Share2 size={14} className={activeTab === 'referidos' ? 'text-tienta-gold' : 'text-black/40'} />
+          <span className="truncate">Referidos</span>
         </button>
 
         <button
@@ -2174,6 +2239,155 @@ export default function Admin() {
                   </div>
                 )}
               </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* TAB CONTENT: REFERIDOS */}
+      {activeTab === 'referidos' && (
+        <div className="bg-white border border-black/5 rounded-3xl p-6 sm:p-8 shadow-sm text-left">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div>
+              <h2 className="text-lg font-montserrat font-bold tracking-wider text-tienta-teal uppercase flex items-center gap-2">
+                <Share2 size={18} /> Auditoría de Referidos 🍦
+              </h2>
+              <p className="text-xs text-black/60 font-lato font-semibold mt-1">
+                Llevá el control de quién recomendó a quién y los bonos acreditados por referidos en el Club.
+              </p>
+            </div>
+          </div>
+
+          {/* Buscador de Referidos */}
+          <div className="bg-tienta-crema/10 border border-black/5 rounded-2xl p-4 mb-6 flex items-center">
+            <div className="w-full">
+              <label className="block text-[10px] font-montserrat uppercase tracking-wider font-extrabold text-tienta-teal mb-1.5">
+                Buscar por DNI o Nombre (Referente o Referido)
+              </label>
+              <input
+                type="text"
+                placeholder="Escribí DNI, Nombre, Apellido o Email..."
+                value={filtroReferidosQuery}
+                onChange={(e) => {
+                  setFiltroReferidosQuery(e.target.value)
+                  setReferidosPage(0)
+                }}
+                className="input-tienta py-2.5 text-black font-semibold text-sm bg-white"
+              />
+            </div>
+          </div>
+
+          {loadingReferidos ? (
+            <div className="py-12 text-center text-xs font-montserrat text-black/50 font-bold uppercase tracking-wider flex items-center justify-center gap-2">
+              <RefreshCw className="animate-spin" size={14} /> Cargando registro de referidos...
+            </div>
+          ) : (
+            <>
+              {/* Filtrado de referidos del lado del cliente */}
+              {(() => {
+                const query = filtroReferidosQuery.toLowerCase().trim()
+                const filtrados = referidos.filter(ref => {
+                  if (!query) return true
+                  const refName = `${ref.referente?.nombre || ''} ${ref.referente?.apellido || ''}`.toLowerCase()
+                  const refDni = (ref.referente?.dni || '').toLowerCase()
+                  const refEmail = (ref.referente?.email || '').toLowerCase()
+
+                  const refoName = `${ref.referido?.nombre || ''} ${ref.referido?.apellido || ''}`.toLowerCase()
+                  const refoDni = (ref.referido?.dni || '').toLowerCase()
+                  const refoEmail = (ref.referido?.email || '').toLowerCase()
+
+                  return refName.includes(query) || refDni.includes(query) || refEmail.includes(query) ||
+                         refoName.includes(query) || refoDni.includes(query) || refoEmail.includes(query)
+                })
+
+                const total = filtrados.length
+                const start = referidosPage * referidosItemsPerPage
+                const end = start + referidosItemsPerPage
+                const paginados = filtrados.slice(start, end)
+
+                return (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-tienta-crema/20 border-b border-black/5 text-[11px] font-montserrat uppercase tracking-wider text-black/65 font-extrabold">
+                          <th className="py-4 px-6">Fecha</th>
+                          <th className="py-4 px-6">Socio Referente (Recomendó)</th>
+                          <th className="py-4 px-6">Socio Referido (Nuevo)</th>
+                          <th className="py-4 px-6 text-right">Bono Referente</th>
+                          <th className="py-4 px-6 text-right">Bono Referido</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-black/5 text-sm">
+                        {paginados.length === 0 ? (
+                          <tr>
+                            <td colSpan={5} className="py-8 text-center text-xs font-montserrat text-black/50 font-bold uppercase tracking-wider">
+                              No se encontraron registros de referidos.
+                            </td>
+                          </tr>
+                        ) : (
+                          paginados.map((ref) => (
+                            <tr key={ref.id} className="hover:bg-tienta-crema/5 transition-colors">
+                              <td className="py-4 px-6 text-xs font-bold text-black/65 whitespace-nowrap">
+                                {new Date(ref.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                <span className="block text-[10px] text-black/40 font-medium font-mono mt-0.5">
+                                  {new Date(ref.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })} hs
+                                </span>
+                              </td>
+                              <td className="py-4 px-6">
+                                <span className="font-bold block text-black text-sm">
+                                  {ref.referente?.nombre} {ref.referente?.apellido}
+                                </span>
+                                <span className="text-[11px] text-black/60 block mt-0.5 font-mono">DNI: {ref.referente?.dni}</span>
+                                <span className="text-[11px] text-tienta-teal block mt-0.5 truncate max-w-[200px]">{ref.referente?.email}</span>
+                              </td>
+                              <td className="py-4 px-6">
+                                <span className="font-bold block text-black text-sm">
+                                  {ref.referido?.nombre} {ref.referido?.apellido}
+                                </span>
+                                <span className="text-[11px] text-black/60 block mt-0.5 font-mono">DNI: {ref.referido?.dni}</span>
+                                <span className="text-[11px] text-tienta-teal block mt-0.5 truncate max-w-[200px]">{ref.referido?.email}</span>
+                              </td>
+                              <td className="py-4 px-6 text-right font-extrabold font-montserrat text-green-600 whitespace-nowrap">
+                                +{ref.puntos_referente} pts
+                              </td>
+                              <td className="py-4 px-6 text-right font-extrabold font-montserrat text-green-600 whitespace-nowrap">
+                                +{ref.puntos_referido} pts
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+
+                    {/* Pagination Controls */}
+                    {total > referidosItemsPerPage && (
+                      <div className="flex items-center justify-between mt-6 pt-5 border-t border-black/5">
+                        <span className="text-xs text-black/60 font-semibold font-lato">
+                          Mostrando del {start + 1} al {Math.min(end, total)} de {total} registros
+                        </span>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setReferidosPage(prev => Math.max(0, prev - 1))}
+                            disabled={referidosPage === 0}
+                            className="px-3 py-1.5 text-[10px] font-montserrat uppercase font-bold tracking-wider rounded-lg border border-black/10 bg-white hover:bg-tienta-crema/35 text-black/60 hover:text-black/85 cursor-pointer disabled:opacity-45 disabled:pointer-events-none"
+                          >
+                            Anterior
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setReferidosPage(prev => prev + 1)}
+                            disabled={end >= total}
+                            className="px-3 py-1.5 text-[10px] font-montserrat uppercase font-bold tracking-wider rounded-lg border border-black/10 bg-white hover:bg-tienta-crema/35 text-black/60 hover:text-black/85 cursor-pointer disabled:opacity-45 disabled:pointer-events-none"
+                          >
+                            Siguiente
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
             </>
           )}
         </div>

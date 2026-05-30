@@ -2632,7 +2632,7 @@ export default function Admin() {
                               </td>
                               <td className="py-4.5 px-6">
                                 {reg.promocion ? (
-                                  <span className="bg-tienta-teal/10 text-tienta-teal px-2.5 py-1 rounded-xl text-xs font-extrabold uppercase font-montserrat border border-tienta-teal/10 inline-block max-w-[200px] truncate">
+                                  <span className="bg-tienta-teal/10 text-tienta-teal px-2.5 py-1 rounded-xl text-xs font-extrabold uppercase font-montserrat border border-tienta-teal/10 inline-block max-w-[320px] whitespace-normal break-words leading-normal">
                                     {reg.promocion.titulo}
                                   </span>
                                 ) : (

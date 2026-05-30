@@ -25,6 +25,17 @@ interface Premio {
   niveles_aplicables?: string[]
 }
 
+interface Promocion {
+  id: string
+  titulo: string
+  descripcion: string
+  descuento_porcentaje: number | null
+  dias_vigencia: string[]
+  niveles_aplicables: string[] | null
+  imagen_url: string
+  activo: boolean
+}
+
 interface Transaccion {
   id: string
   tipo: string
@@ -33,6 +44,11 @@ interface Transaccion {
   ticket_factura: string | null
   detalle: string
   created_at: string
+  promocion_id?: string | null
+  descuento_aplicado?: number | null
+  promocion?: {
+    titulo: string
+  } | null
   creador?: {
     nombre: string
     apellido: string
@@ -67,6 +83,11 @@ export default function Caja() {
   const [ticketCompra, setTicketCompra] = useState('')
   const [loadingCompra, setLoadingCompra] = useState(false)
   const [successCompra, setSuccessCompra] = useState(false)
+
+  // Promociones del Socio
+  const [promociones, setPromociones] = useState<Promocion[]>([])
+  const [selectedPromo, setSelectedPromo] = useState<Promocion | null>(null)
+  const [descuentoManual, setDescuentoManual] = useState<string>('')
 
   // Formulario Carga Manual
   const [puntosManuales, setPuntosManuales] = useState('')
@@ -143,10 +164,25 @@ export default function Caja() {
   // Carga de Premios y Configuración al montar
   useEffect(() => {
     fetchPremios()
+    fetchPromociones()
     fetchConfiguracion()
     checkUserRole()
     fetchCajeroTurno()
   }, [])
+
+  // Recalcular descuento sugerido cuando cambie el importe de la compra o la promo
+  useEffect(() => {
+    if (selectedPromo) {
+      if (selectedPromo.descuento_porcentaje) {
+        const ds = Math.round(Number(importeCompra || 0) * selectedPromo.descuento_porcentaje / 100)
+        setDescuentoManual(ds > 0 ? ds.toString() : '')
+      } else {
+        setDescuentoManual('0')
+      }
+    } else {
+      setDescuentoManual('')
+    }
+  }, [importeCompra, selectedPromo])
 
   const checkUserRole = async () => {
     const { data: { session } } = await supabase.auth.getSession()
@@ -230,6 +266,15 @@ export default function Caja() {
     if (!error && data) setPremios(data)
   }
 
+  const fetchPromociones = async () => {
+    const { data, error } = await supabase
+      .from('promociones')
+      .select('*')
+      .eq('activo', true)
+      .order('created_at', { ascending: false })
+    if (!error && data) setPromociones(data)
+  }
+
   const fetchConfiguracion = async () => {
     const { data, error } = await supabase
       .from('configuraciones')
@@ -286,6 +331,8 @@ export default function Caja() {
     setFilterTipoCaja('todos')
     setSearchQueryCaja('')
     setPaginaCaja(0)
+    setSelectedPromo(null)
+    setDescuentoManual('')
   }
 
   const fetchHistorialCliente = async (clienteId: string) => {
@@ -294,6 +341,8 @@ export default function Caja() {
       .from('transacciones')
       .select(`
         id, tipo, importe, puntos, ticket_factura, detalle, created_at,
+        promocion_id, descuento_aplicado,
+        promocion:promociones(titulo),
         creador:profiles!creado_por(nombre, apellido, email)
       `)
       .eq('cliente_id', clienteId)
@@ -330,10 +379,11 @@ export default function Caja() {
       const { data: { session } } = await supabase.auth.getSession()
       
       const importe = Number(importeCompra)
-      // Calcular puntos base en frontend (el trigger de la base de datos se encargará de impactarlo)
-      // Si el cliente tiene un nivel premium, podríamos configurar un multiplicador en configuraciones.
-      // Por simplicidad, calculamos puntos = importe / valorPunto
-      let puntosCalculados = Math.floor(importe / valorPunto)
+      const desc = Number(descuentoManual) || 0
+      const neto = Math.max(0, importe - desc)
+
+      // Calcular puntos base sobre el monto neto a cobrar
+      let puntosCalculados = Math.floor(neto / valorPunto)
 
       // Aplicar multiplicador dinámico de puntos configurado por el administrador para Gold o Platinum
       if (cliente.nivel === 'Platinum' && bonoPlatinum > 0) {
@@ -342,27 +392,51 @@ export default function Caja() {
         puntosCalculados = Math.floor(puntosCalculados * (1 + bonoGold / 100))
       }
 
-      if (puntosCalculados <= 0) {
-        throw new Error(`El importe ingresado es muy bajo para sumar puntos. Mínimo para 1 punto: $${valorPunto}`)
+      if (puntosCalculados <= 0 && neto > 0) {
+        throw new Error(`El importe neto de la compra es muy bajo para sumar puntos. Mínimo para 1 punto: $${valorPunto}`)
       }
 
+      // Insertar transacción de carga de compra tradicional con promoción y descuento vinculados
       const { error } = await supabase
         .from('transacciones')
         .insert({
           cliente_id: cliente.id,
           tipo: 'carga_compra',
-          importe: importe,
+          importe: neto, // Se guarda el importe neto final cobrado
           puntos: puntosCalculados,
           ticket_factura: ticketCompra.trim(),
-          detalle: `Carga por compra en sucursal con ticket ${ticketCompra}`,
-          creado_por: session?.user?.id || null
+          detalle: selectedPromo 
+            ? `Carga por compra en sucursal aplicando promo: ${selectedPromo.titulo} (Ticket ${ticketCompra})`
+            : `Carga por compra en sucursal con ticket ${ticketCompra}`,
+          creado_por: session?.user?.id || null,
+          promocion_id: selectedPromo?.id || null,
+          descuento_aplicado: desc
         })
 
       if (error) throw error
 
+      // Si hay una promoción seleccionada, insertar registro en la tabla de auditoría registro_promociones
+      if (selectedPromo) {
+        const { error: promoError } = await supabase
+          .from('registro_promociones')
+          .insert({
+            cliente_id: cliente.id,
+            promocion_id: selectedPromo.id,
+            cajero_id: session?.user?.id || null,
+            ticket_factura: ticketCompra.trim(),
+            importe_compra: importe,
+            descuento_aplicado: desc,
+            puntos_extra_otorgados: 0
+          })
+
+        if (promoError) throw promoError
+      }
+
       setSuccessCompra(true)
       setImporteCompra('')
       setTicketCompra('')
+      setSelectedPromo(null)
+      setDescuentoManual('')
       
       // Recargar datos actualizados del cliente
       await recargarCliente()
@@ -467,7 +541,9 @@ export default function Caja() {
   const previewPuntos = () => {
     const imp = Number(importeCompra)
     if (isNaN(imp) || imp <= 0) return 0
-    let pts = Math.floor(imp / valorPunto)
+    const desc = Number(descuentoManual) || 0
+    const neto = Math.max(0, imp - desc)
+    let pts = Math.floor(neto / valorPunto)
     if (cliente?.nivel === 'Platinum' && bonoPlatinum > 0) pts = Math.floor(pts * (1 + bonoPlatinum / 100))
     if (cliente?.nivel === 'Gold' && bonoGold > 0) pts = Math.floor(pts * (1 + bonoGold / 100))
     return pts
@@ -485,6 +561,7 @@ export default function Caja() {
       !cleanSearch || 
       tr.detalle.toLowerCase().includes(cleanSearch) || 
       (tr.ticket_factura && tr.ticket_factura.toLowerCase().includes(cleanSearch)) ||
+      (tr.promocion?.titulo && tr.promocion.titulo.toLowerCase().includes(cleanSearch)) ||
       (tr.tipo === 'carga_compra' ? 'compra' : tr.tipo === 'carga_manual' ? 'cargas' : 'canje').includes(cleanSearch)
 
     return matchesTipo && matchesSearch
@@ -625,12 +702,19 @@ export default function Caja() {
                     className="input-tienta py-2.5 text-black font-semibold text-base"
                   />
                   {importeCompra && (
-                    <span className="text-xs text-tienta-goldDark font-extrabold mt-2 block tracking-wide bg-tienta-gold/5 border border-tienta-gold/25 p-2 rounded-xl">
-                      ⚡ Sumará {previewPuntos()} puntos {
-                        ((cliente.nivel === 'Platinum' && bonoPlatinum > 0) || (cliente.nivel === 'Gold' && bonoGold > 0)) && 
-                        `(Con bono de nivel ${cliente.nivel}: +${cliente.nivel === 'Platinum' ? bonoPlatinum : bonoGold}%)`
-                      }
-                    </span>
+                    <div className="space-y-1.5 mt-2">
+                      <span className="text-xs text-tienta-goldDark font-extrabold mt-2 block tracking-wide bg-tienta-gold/5 border border-tienta-gold/25 p-2 rounded-xl">
+                        ⚡ Sumará {previewPuntos()} puntos {
+                          ((cliente.nivel === 'Platinum' && bonoPlatinum > 0) || (cliente.nivel === 'Gold' && bonoGold > 0)) && 
+                          `(Con bono de nivel ${cliente.nivel}: +${cliente.nivel === 'Platinum' ? bonoPlatinum : bonoGold}%)`
+                        }
+                      </span>
+                      {selectedPromo && (
+                        <span className="text-[11px] font-extrabold font-montserrat text-green-600 block uppercase tracking-wider">
+                          💵 Neto a cobrar en caja: ${(Number(importeCompra) - (Number(descuentoManual) || 0)).toLocaleString('es-AR')}
+                        </span>
+                      )}
+                    </div>
                   )}
                 </div>
 
@@ -646,6 +730,86 @@ export default function Caja() {
                     onChange={(e) => setTicketCompra(e.target.value)}
                     className="input-tienta py-2.5 text-black font-semibold text-base"
                   />
+                </div>
+
+                {/* Selector de Promociones Aplicables */}
+                <div className="sm:col-span-2 border-t border-b border-black/5 py-5 my-2 text-left">
+                  <span className="block text-xs font-montserrat uppercase tracking-wider font-extrabold text-tienta-teal mb-3">
+                    🎟️ Promociones Disponibles para el Socio
+                  </span>
+                  
+                  {promociones.filter(p => {
+                    if (!p.niveles_aplicables || p.niveles_aplicables.length === 0) return true;
+                    return p.niveles_aplicables.includes(cliente.nivel);
+                  }).length === 0 ? (
+                    <p className="text-xs text-black/40 font-medium">No hay promociones aplicables para este nivel de socio hoy.</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2.5">
+                      {promociones.filter(p => {
+                        if (!p.niveles_aplicables || p.niveles_aplicables.length === 0) return true;
+                        return p.niveles_aplicables.includes(cliente.nivel);
+                      }).map((p) => {
+                        const isSelected = selectedPromo?.id === p.id;
+                        return (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => {
+                              if (isSelected) {
+                                setSelectedPromo(null);
+                                setDescuentoManual('');
+                              } else {
+                                setSelectedPromo(p);
+                              }
+                            }}
+                            className={`px-4 py-2.5 rounded-2xl text-xs font-bold font-montserrat tracking-wider uppercase transition-all duration-200 cursor-pointer border text-left flex flex-col gap-1 max-w-[280px] sm:max-w-xs ${
+                              isSelected
+                                ? 'bg-tienta-gold text-white border-tienta-gold shadow-md'
+                                : 'bg-tienta-crema/15 hover:bg-tienta-crema/30 text-black/75 border-black/5 hover:border-black/15'
+                            }`}
+                          >
+                            <span className="font-extrabold block truncate">{p.titulo}</span>
+                            <span className={`text-[10px] lowercase block line-clamp-1 font-lato ${isSelected ? 'text-white/85' : 'text-black/45'}`}>
+                              {p.descripcion}
+                            </span>
+                            {p.descuento_porcentaje && (
+                              <span className={`text-[10px] uppercase font-mono tracking-widest font-extrabold ${isSelected ? 'text-white/95' : 'text-tienta-goldDark'}`}>
+                                % {p.descuento_porcentaje} OFF
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Detalle y ajuste manual del descuento si hay promo seleccionada */}
+                  {selectedPromo && (
+                    <div className="mt-4 p-4 rounded-2xl bg-tienta-crema/20 border border-tienta-gold/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fadeIn">
+                      <div>
+                        <span className="text-xs font-montserrat font-extrabold uppercase text-tienta-goldDark block">
+                          Beneficio: {selectedPromo.titulo}
+                        </span>
+                        <p className="text-xs text-black/65 mt-0.5 font-medium">
+                          {selectedPromo.descuento_porcentaje 
+                            ? `Descuento sugerido del ${selectedPromo.descuento_porcentaje}% OFF.` 
+                            : 'Promo de beneficio físico/regalo. Podés registrar el costo opcional en el casillero derecho.'}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <label className="text-[11px] font-montserrat uppercase font-extrabold text-black/55">
+                          Descuento ($):
+                        </label>
+                        <input
+                          type="number"
+                          placeholder="0"
+                          value={descuentoManual}
+                          onChange={(e) => setDescuentoManual(e.target.value)}
+                          className="w-24 bg-white border border-black/10 rounded-xl px-3 py-1.5 text-sm font-bold text-black focus:outline-none focus:border-tienta-teal"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="sm:col-span-2">
@@ -910,16 +1074,23 @@ export default function Caja() {
                                 minute: '2-digit'
                               })}
                             </td>
-                            <td className="py-3 px-4">
+                            <td className="py-3 px-4 text-left">
                               <span className="font-bold block text-black">
                                 {tr.tipo === 'carga_compra' ? 'Compra' : tr.tipo === 'carga_manual' ? 'Carga Manual' : 'Canje'}
                               </span>
                               <span className="text-xs text-black/65 block mt-0.5 font-medium">{tr.detalle}</span>
-                              {tr.creador && (
-                                <span className="text-[10px] text-tienta-teal font-extrabold block mt-0.5">
-                                  👤 Op: {tr.creador.nombre} ({tr.creador.email.split('@')[0]})
-                                </span>
-                              )}
+                              <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                                {tr.creador && (
+                                  <span className="text-[10px] text-tienta-teal font-extrabold inline-block">
+                                    👤 Op: {tr.creador.nombre} ({tr.creador.email.split('@')[0]})
+                                  </span>
+                                )}
+                                {tr.promocion?.titulo && (
+                                  <span className="bg-tienta-gold/15 text-tienta-goldDark border border-tienta-gold/20 text-[9px] font-montserrat font-extrabold uppercase px-2 py-0.5 rounded-full tracking-wider">
+                                    🏷️ Promo: {tr.promocion.titulo} {tr.descuento_aplicado && tr.descuento_aplicado > 0 ? `(-$${Number(tr.descuento_aplicado).toLocaleString('es-AR')})` : ''}
+                                  </span>
+                                )}
+                              </div>
                             </td>
                             <td className="py-3 px-4 text-black/65 font-bold text-xs">
                               {tr.ticket_factura || '-'}

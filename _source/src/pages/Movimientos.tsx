@@ -11,6 +11,11 @@ interface Transaccion {
   ticket_factura: string | null
   detalle: string
   created_at: string
+  promocion_id?: string | null
+  descuento_aplicado?: number | null
+  promocion?: {
+    titulo: string
+  } | null
 }
 
 export default function Movimientos() {
@@ -39,7 +44,7 @@ export default function Movimientos() {
 
       const { data: txs, error } = await supabase
         .from('transacciones')
-        .select('*')
+        .select('*, promocion:promociones(titulo)')
         .eq('cliente_id', session.user.id)
         .order('created_at', { ascending: false })
 
@@ -70,6 +75,7 @@ export default function Movimientos() {
       !cleanSearch || 
       tx.detalle.toLowerCase().includes(cleanSearch) || 
       (tx.ticket_factura && tx.ticket_factura.toLowerCase().includes(cleanSearch)) ||
+      (tx.promocion?.titulo && tx.promocion.titulo.toLowerCase().includes(cleanSearch)) ||
       (tx.tipo === 'carga_compra' ? 'compra' : tx.tipo === 'carga_manual' ? 'bono carga' : 'canje').includes(cleanSearch)
 
     return matchesTipo && matchesSearch
@@ -268,14 +274,21 @@ export default function Movimientos() {
                       </td>
                       
                       {/* Detalle */}
-                      <td className="py-4.5 px-6">
+                      <td className="py-4.5 px-6 text-left">
                         <span className="text-sm font-bold text-black block">
                           {tx.detalle}
                         </span>
-                        <span className="text-[10px] uppercase font-montserrat font-bold tracking-wider text-black/50 mt-0.5 inline-block">
-                          {tx.tipo === 'carga_compra' ? '🛒 Compra' : tx.tipo === 'carga_manual' ? '⭐ Bono/Carga' : '🎁 Canje'}
-                          {tx.ticket_factura ? ` • Ticket #${tx.ticket_factura}` : ''}
-                        </span>
+                        <div className="flex flex-wrap items-center gap-2 mt-1">
+                          <span className="text-[10px] uppercase font-montserrat font-bold tracking-wider text-black/50 inline-block">
+                            {tx.tipo === 'carga_compra' ? '🛒 Compra' : tx.tipo === 'carga_manual' ? '⭐ Bono/Carga' : '🎁 Canje'}
+                            {tx.ticket_factura ? ` • Ticket #${tx.ticket_factura}` : ''}
+                          </span>
+                          {tx.promocion?.titulo && (
+                            <span className="bg-tienta-gold/15 text-tienta-goldDark border border-tienta-gold/20 text-[9px] font-montserrat font-extrabold uppercase px-2 py-0.5 rounded-full tracking-wider">
+                              🏷️ Promo: {tx.promocion.titulo} {tx.descuento_aplicado && tx.descuento_aplicado > 0 ? `(-$${Number(tx.descuento_aplicado).toLocaleString('es-AR')})` : ''}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       
                       {/* Importe Gastado */}

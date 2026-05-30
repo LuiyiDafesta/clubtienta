@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { 
   Settings, Gift, Percent, ShieldCheck, Plus, Trash2, 
   Calendar, RefreshCw, Layers, Edit, BarChart3,
-  ChevronLeft, ChevronRight, Share2
+  ChevronLeft, ChevronRight, Share2, DollarSign, Award
 } from 'lucide-react'
 
 // Interfaces
@@ -100,7 +100,7 @@ const compressImage = (file: File, maxWidth = 800, maxHeight = 800, quality = 0.
 }
 
 export default function Admin() {
-  const [activeTab, setActiveTab] = useState<'config' | 'premios' | 'promos' | 'auditoria' | 'referidos' | 'staff' | 'metricas'>('config')
+  const [activeTab, setActiveTab] = useState<'config' | 'premios' | 'promos' | 'auditoria' | 'referidos' | 'promosUsadas' | 'staff' | 'metricas'>('config')
 
   // --- REFERIDOS ESTADOS ---
   interface ReferidoRegistro {
@@ -126,6 +126,34 @@ export default function Admin() {
   const [filtroReferidosQuery, setFiltroReferidosQuery] = useState('')
   const [referidosPage, setReferidosPage] = useState(0)
   const referidosItemsPerPage = 10
+
+  // --- AUDITORÍA DE PROMOCIONES ESTADOS ---
+  interface RegistroPromocion {
+    id: string
+    created_at: string
+    ticket_factura: string
+    importe_compra: number
+    descuento_aplicado: number
+    puntos_extra_otorgados: number
+    cliente: {
+      nombre: string
+      apellido: string
+      dni: string
+      email: string
+    }
+    promocion: {
+      titulo: string
+    }
+    cajero: {
+      nombre: string
+      apellido: string
+    }
+  }
+  const [promosUsadas, setPromosUsadas] = useState<RegistroPromocion[]>([])
+  const [loadingPromosUsadas, setLoadingPromosUsadas] = useState(false)
+  const [filtroPromosQuery, setFiltroPromosQuery] = useState('')
+  const [promosUsadasPage, setPromosUsadasPage] = useState(0)
+  const promosUsadasItemsPerPage = 10
 
   // --- CONFIGURACIÓN ESTADOS ---
   const [valorPunto, setValorPunto] = useState('200')
@@ -238,6 +266,8 @@ export default function Admin() {
       fetchMetricas()
     } else if (activeTab === 'referidos') {
       fetchReferidos()
+    } else if (activeTab === 'promosUsadas') {
+      fetchPromosUsadas()
     }
   }, [activeTab, selectedDate, metricScope])
 
@@ -387,6 +417,35 @@ export default function Admin() {
       console.error('Error al cargar referidos:', err)
     } finally {
       setLoadingReferidos(false)
+    }
+  }
+
+  const fetchPromosUsadas = async () => {
+    setLoadingPromosUsadas(true)
+    try {
+      const { data, error } = await supabase
+        .from('registro_promociones')
+        .select(`
+          id,
+          created_at,
+          ticket_factura,
+          importe_compra,
+          descuento_aplicado,
+          puntos_extra_otorgados,
+          cliente:cliente_id (nombre, apellido, dni, email),
+          promocion:promocion_id (titulo),
+          cajero:cajero_id (nombre, apellido)
+        `)
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      if (data) {
+        setPromosUsadas(data as any[])
+      }
+    } catch (err) {
+      console.error('Error al cargar reporte de promos:', err)
+    } finally {
+      setLoadingPromosUsadas(false)
     }
   }
 
@@ -881,7 +940,7 @@ export default function Admin() {
       </div>
 
       {/* Visual Navigation Dashboard Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-8 gap-3 mb-8">
         <button
           onClick={() => setActiveTab('config')}
           className={`flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl text-[10px] font-montserrat uppercase tracking-wider font-extrabold transition-all duration-300 border cursor-pointer shadow-xs ${
@@ -952,6 +1011,18 @@ export default function Admin() {
         >
           <Share2 size={14} className={activeTab === 'referidos' ? 'text-tienta-gold' : 'text-black/40'} />
           <span className="truncate">Referidos</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('promosUsadas')}
+          className={`flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl text-[10px] font-montserrat uppercase tracking-wider font-extrabold transition-all duration-300 border cursor-pointer shadow-xs ${
+            activeTab === 'promosUsadas' 
+              ? 'bg-tienta-teal text-white border-tienta-teal shadow-[0_4px_12px_rgba(2,97,99,0.2)] scale-102 font-black' 
+              : 'bg-white border-black/5 hover:bg-tienta-crema/40 text-black/60 hover:text-black/85 font-bold'
+          }`}
+        >
+          <Gift size={14} className={activeTab === 'promosUsadas' ? 'text-tienta-gold' : 'text-black/40'} />
+          <span className="truncate">Promos Usadas</span>
         </button>
 
         <button
@@ -2377,6 +2448,215 @@ export default function Admin() {
                           <button
                             type="button"
                             onClick={() => setReferidosPage(prev => prev + 1)}
+                            disabled={end >= total}
+                            className="px-3 py-1.5 text-[10px] font-montserrat uppercase font-bold tracking-wider rounded-lg border border-black/10 bg-white hover:bg-tienta-crema/35 text-black/60 hover:text-black/85 cursor-pointer disabled:opacity-45 disabled:pointer-events-none"
+                          >
+                            Siguiente
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* TAB CONTENT: PROMOS USADAS */}
+      {activeTab === 'promosUsadas' && (
+        <div className="bg-white border border-black/5 rounded-3xl p-6 sm:p-8 shadow-sm text-left">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div>
+              <h2 className="text-lg font-montserrat font-bold tracking-wider text-tienta-teal uppercase flex items-center gap-2">
+                <Gift size={18} className="text-tienta-gold" /> Reporte y Auditoría de Promociones Usadas 🍦
+              </h2>
+              <p className="text-xs text-black/60 font-lato font-semibold mt-1">
+                Llevá el control de qué promociones se aplicaron, el impacto en descuentos ($) y qué operador las cobró.
+              </p>
+            </div>
+          </div>
+
+          {loadingPromosUsadas ? (
+            <p className="text-xs text-black/40 py-8 text-center animate-pulse">Cargando reporte de promociones...</p>
+          ) : (
+            <>
+              {/* Bloque de KPIs rápidos */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
+                <div className="bg-tienta-crema/10 border border-black/5 p-6 rounded-3xl flex items-center gap-4">
+                  <div className="bg-tienta-teal/10 text-tienta-teal p-3 rounded-2xl">
+                    <Gift size={20} />
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-montserrat font-extrabold text-black/55 tracking-wider block">Total Canjes de Promos</span>
+                    <span className="text-2xl font-montserrat font-extrabold text-black/85">{promosUsadas.length}</span>
+                  </div>
+                </div>
+
+                <div className="bg-tienta-crema/10 border border-black/5 p-6 rounded-3xl flex items-center gap-4">
+                  <div className="bg-green-100 text-green-700 p-3 rounded-2xl">
+                    <DollarSign size={20} />
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-montserrat font-extrabold text-black/55 tracking-wider block">Total Descuentos ($)</span>
+                    <span className="text-2xl font-montserrat font-extrabold text-black/85">
+                      ${promosUsadas.reduce((sum, item) => sum + Number(item.descuento_aplicado || 0), 0).toLocaleString('es-AR')}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="bg-tienta-crema/10 border border-black/5 p-6 rounded-3xl flex items-center gap-4">
+                  <div className="bg-tienta-gold/15 text-tienta-goldDark p-3 rounded-2xl">
+                    <Award size={20} />
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-montserrat font-extrabold text-black/55 tracking-wider block">Descuento Promedio</span>
+                    <span className="text-2xl font-montserrat font-extrabold text-black/85">
+                      ${promosUsadas.length > 0
+                        ? Math.round(promosUsadas.reduce((sum, item) => sum + Number(item.descuento_aplicado || 0), 0) / promosUsadas.length).toLocaleString('es-AR')
+                        : 0
+                      }
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Buscador de Promociones Usadas */}
+              <div className="mb-6">
+                <input
+                  type="text"
+                  placeholder="Buscar por DNI, socio, promoción o ticket..."
+                  value={filtroPromosQuery}
+                  onChange={(e) => {
+                    setFiltroPromosQuery(e.target.value)
+                    setPromosUsadasPage(0)
+                  }}
+                  className="input-tienta py-2.5 text-sm font-semibold max-w-md w-full bg-white"
+                />
+              </div>
+
+              {/* Tabla de Resultados */}
+              {(() => {
+                const filtrados = promosUsadas.filter(p => {
+                  const query = filtroPromosQuery.toLowerCase().trim()
+                  if (!query) return true
+                  return (
+                    (p.cliente && (
+                      p.cliente.nombre.toLowerCase().includes(query) ||
+                      p.cliente.apellido.toLowerCase().includes(query) ||
+                      p.cliente.dni.includes(query) ||
+                      p.cliente.email.toLowerCase().includes(query)
+                    )) ||
+                    (p.promocion && p.promocion.titulo.toLowerCase().includes(query)) ||
+                    (p.cajero && (
+                      p.cajero.nombre.toLowerCase().includes(query) ||
+                      p.cajero.apellido.toLowerCase().includes(query)
+                    )) ||
+                    p.ticket_factura.toLowerCase().includes(query)
+                  )
+                })
+
+                const total = filtrados.length
+                const start = promosUsadasPage * promosUsadasItemsPerPage
+                const end = start + promosUsadasItemsPerPage
+                const paginados = filtrados.slice(start, end)
+
+                if (total === 0) {
+                  return (
+                    <div className="p-12 text-center border border-dashed border-black/10 rounded-3xl">
+                      <Gift className="text-black/25 mx-auto mb-3" size={32} />
+                      <p className="text-sm font-semibold text-black/50">No se encontraron registros de promociones aplicadas.</p>
+                    </div>
+                  )
+                }
+
+                return (
+                  <div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="bg-tienta-crema/20 border-b border-black/5 text-[11px] font-montserrat uppercase tracking-wider text-black/65 font-extrabold">
+                            <th className="py-4 px-6 sm:px-8">Fecha y Hora</th>
+                            <th className="py-4 px-6">Socio (Cliente)</th>
+                            <th className="py-4 px-6">Promoción Utilizada</th>
+                            <th className="py-4 px-6">Ticket</th>
+                            <th className="py-4 px-6 text-right">Compra Original</th>
+                            <th className="py-4 px-6 text-right">Descuento ($)</th>
+                            <th className="py-4 px-6 sm:px-8">Operador / Cajero</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-black/5 text-sm font-semibold text-black/75">
+                          {paginados.map((reg) => (
+                            <tr key={reg.id} className="hover:bg-tienta-crema/5 transition-colors duration-150">
+                              <td className="py-4.5 px-6 sm:px-8 text-xs font-mono text-black/65">
+                                {new Date(reg.created_at).toLocaleString('es-AR', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </td>
+                              <td className="py-4.5 px-6">
+                                {reg.cliente ? (
+                                  <div>
+                                    <span className="text-black font-bold block">{reg.cliente.nombre} {reg.cliente.apellido}</span>
+                                    <span className="text-[10px] text-black/45 block mt-0.5">DNI {reg.cliente.dni} • {reg.cliente.email}</span>
+                                  </div>
+                                ) : (
+                                  <span className="italic text-black/40">Socio eliminado</span>
+                                )}
+                              </td>
+                              <td className="py-4.5 px-6">
+                                {reg.promocion ? (
+                                  <span className="bg-tienta-teal/10 text-tienta-teal px-2.5 py-1 rounded-xl text-xs font-extrabold uppercase font-montserrat border border-tienta-teal/10 inline-block max-w-[200px] truncate">
+                                    {reg.promocion.titulo}
+                                  </span>
+                                ) : (
+                                  <span className="italic text-black/40">Promo inactiva</span>
+                                )}
+                              </td>
+                              <td className="py-4.5 px-6 font-mono text-xs">
+                                #{reg.ticket_factura}
+                              </td>
+                              <td className="py-4.5 px-6 text-right font-mono text-xs text-black/70">
+                                ${Number(reg.importe_compra).toLocaleString('es-AR')}
+                              </td>
+                              <td className="py-4.5 px-6 text-right font-montserrat font-extrabold text-sm text-green-600">
+                                {reg.descuento_aplicado > 0 ? `-$${Number(reg.descuento_aplicado).toLocaleString('es-AR')}` : '$0'}
+                              </td>
+                              <td className="py-4.5 px-6 sm:px-8 text-xs">
+                                {reg.cajero ? (
+                                  <span className="font-extrabold text-tienta-teal">👤 {reg.cajero.nombre} {reg.cajero.apellido}</span>
+                                ) : (
+                                  <span className="italic text-black/40">-</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Controles de paginación */}
+                    {total > promosUsadasItemsPerPage && (
+                      <div className="flex items-center justify-between mt-6 pt-5 border-t border-black/5">
+                        <span className="text-xs text-black/60 font-semibold font-lato">
+                          Mostrando del {start + 1} al {Math.min(end, total)} de {total} registros
+                        </span>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setPromosUsadasPage(prev => Math.max(0, prev - 1))}
+                            disabled={promosUsadasPage === 0}
+                            className="px-3 py-1.5 text-[10px] font-montserrat uppercase font-bold tracking-wider rounded-lg border border-black/10 bg-white hover:bg-tienta-crema/35 text-black/60 hover:text-black/85 cursor-pointer disabled:opacity-45 disabled:pointer-events-none"
+                          >
+                            Anterior
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPromosUsadasPage(prev => prev + 1)}
                             disabled={end >= total}
                             className="px-3 py-1.5 text-[10px] font-montserrat uppercase font-bold tracking-wider rounded-lg border border-black/10 bg-white hover:bg-tienta-crema/35 text-black/60 hover:text-black/85 cursor-pointer disabled:opacity-45 disabled:pointer-events-none"
                           >

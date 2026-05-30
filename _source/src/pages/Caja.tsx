@@ -47,6 +47,7 @@ interface Transaccion {
   created_at: string
   promocion_id?: string | null
   descuento_aplicado?: number | null
+  premio_id?: string | null
   promocion?: {
     titulo: string
   } | null
@@ -514,6 +515,11 @@ export default function Caja() {
   const handleCanjearPremio = async (premio: Premio) => {
     if (!cliente) return
     
+    if (premio.stock !== -1 && premio.stock <= 0) {
+      mostrarToast('Este premio se encuentra temporalmente sin stock.', 'error')
+      return
+    }
+
     mostrarConfirmacion(
       'Confirmar Canje',
       `¿Confirmás el canje de ${premio.nombre} por ${premio.puntos_requeridos} puntos para ${cliente.nombre} ${cliente.apellido}?`,
@@ -530,13 +536,15 @@ export default function Caja() {
               puntos: -premio.puntos_requeridos,
               ticket_factura: null,
               detalle: `Canje de premio en caja: ${premio.nombre}`,
-              creado_por: session?.user?.id || null
+              creado_por: session?.user?.id || null,
+              premio_id: premio.id
             })
 
           if (error) throw error
 
           mostrarToast(`¡Premio canjeado con éxito! Entregá: ${premio.nombre}`, 'success')
           await recargarCliente()
+          await fetchPremios() // Recargar stock en frontend
           await fetchCajeroTurno()
 
         } catch (err: any) {
@@ -947,7 +955,8 @@ export default function Caja() {
                   {premios.map((premio) => {
                     const noAlcanza = cliente.puntos_actuales < premio.puntos_requeridos
                     const isExcluded = premio.niveles_aplicables && premio.niveles_aplicables.length > 0 && !premio.niveles_aplicables.includes(cliente.nivel)
-                    const disabledButton = noAlcanza || isExcluded
+                    const sinStock = premio.stock !== -1 && premio.stock <= 0
+                    const disabledButton = noAlcanza || isExcluded || sinStock
                     
                     return (
                       <div 
@@ -955,8 +964,8 @@ export default function Caja() {
                         className={`border rounded-2xl p-4 flex flex-col justify-between transition-all duration-300 relative overflow-hidden ${
                           isExcluded
                             ? 'bg-black/5 border-dashed border-black/15 opacity-50 filter grayscale pointer-events-none'
-                            : noAlcanza 
-                              ? 'bg-black/[0.02] border-black/5 opacity-60' 
+                            : disabledButton 
+                              ? 'bg-black/[0.02] border-black/5 opacity-65' 
                               : 'bg-white border-black/10 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.05)] hover:border-tienta-gold/30'
                         }`}
                       >
@@ -970,9 +979,20 @@ export default function Caja() {
                             <h4 className="font-montserrat font-bold text-xs uppercase tracking-wide text-tienta-teal">
                               {premio.nombre}
                             </h4>
-                            <span className="bg-tienta-crema text-tienta-goldDark px-2 py-0.5 rounded-full text-[10px] font-montserrat uppercase tracking-wider font-extrabold border border-tienta-gold/20 shrink-0">
-                              {premio.puntos_requeridos} pts
-                            </span>
+                            <div className="flex flex-col items-end gap-1 shrink-0">
+                              <span className="bg-tienta-crema text-tienta-goldDark px-2 py-0.5 rounded-full text-[10px] font-montserrat uppercase tracking-wider font-extrabold border border-tienta-gold/20 shrink-0">
+                                {premio.puntos_requeridos} pts
+                              </span>
+                              {premio.stock !== -1 && (
+                                <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded shrink-0 ${
+                                  premio.stock <= 0 
+                                    ? 'bg-red-50 text-red-600 border border-red-100' 
+                                    : 'bg-green-50 text-green-700 border border-green-100'
+                                }`}>
+                                  {premio.stock <= 0 ? 'Sin Stock' : `Stock: ${premio.stock}`}
+                                </span>
+                              )}
+                            </div>
                           </div>
 
                           {/* Foto del Premio si existe */}
@@ -1004,9 +1024,11 @@ export default function Caja() {
                         >
                           {isExcluded 
                             ? 'Exclusivo Premium' 
-                            : noAlcanza 
-                              ? 'Puntos Insuficientes' 
-                              : 'Canjear Premio'}
+                            : sinStock
+                              ? 'Sin Stock'
+                              : noAlcanza 
+                                ? 'Puntos Insuficientes' 
+                                : 'Canjear Premio'}
                         </button>
                       </div>
                     )

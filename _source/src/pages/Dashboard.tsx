@@ -551,6 +551,7 @@ export default function Dashboard() {
                 const alcanzado = cliente.puntos_actuales >= premio.puntos_requeridos
                 const porcentajePremio = Math.min(100, Math.floor((cliente.puntos_actuales / premio.puntos_requeridos) * 100))
                 const isExcluded = premio.niveles_aplicables && premio.niveles_aplicables.length > 0 && !premio.niveles_aplicables.includes(cliente.nivel)
+                const sinStock = premio.stock !== -1 && premio.stock <= 0
                 
                 return (
                   <div 
@@ -558,9 +559,11 @@ export default function Dashboard() {
                     className={`border rounded-3xl overflow-hidden flex flex-col justify-between transition-all duration-300 ${
                       isExcluded
                         ? 'opacity-55 filter grayscale-[40%] bg-black/5 border-dashed border-black/15 pointer-events-none'
-                        : alcanzado 
-                          ? 'border-tienta-gold bg-tienta-gold/5 shadow-[0_2px_15px_rgba(202,168,112,0.08)] animate-pulse-subtle' 
-                          : 'border-black/10 bg-white shadow-[0_2px_10px_rgba(0,0,0,0.01)] hover:border-black/25'
+                        : sinStock
+                          ? 'border-black/10 bg-black/[0.01] opacity-75'
+                          : alcanzado 
+                            ? 'border-tienta-gold bg-tienta-gold/5 shadow-[0_2px_15px_rgba(202,168,112,0.08)] animate-pulse-subtle' 
+                            : 'border-black/10 bg-white shadow-[0_2px_10px_rgba(0,0,0,0.01)] hover:border-black/25'
                     }`}
                   >
                     {/* Foto de portada del premio si existe */}
@@ -578,6 +581,13 @@ export default function Dashboard() {
                             </span>
                           </div>
                         )}
+                        {!isExcluded && sinStock && (
+                          <div className="absolute inset-0 bg-black/15 backdrop-blur-xs flex items-center justify-center">
+                            <span className="text-[10px] font-montserrat font-extrabold uppercase tracking-widest text-white bg-red-600 px-3 py-1 rounded-full shadow-md">
+                              ⚠️ Sin Stock
+                            </span>
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -587,15 +597,26 @@ export default function Dashboard() {
                           <h4 className="font-montserrat font-bold text-sm uppercase tracking-wide text-tienta-teal">
                             {premio.nombre}
                           </h4>
-                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-montserrat uppercase tracking-wider font-extrabold shrink-0 ${
-                            isExcluded
-                              ? 'bg-black/10 text-black/50'
-                              : alcanzado 
-                                ? 'bg-tienta-gold text-white shadow-sm border border-tienta-gold' 
-                                : 'bg-tienta-crema text-tienta-goldDark border border-tienta-gold/20'
-                          }`}>
-                            {premio.puntos_requeridos} pts
-                          </span>
+                          <div className="flex flex-col items-end gap-1.5 shrink-0">
+                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-montserrat uppercase tracking-wider font-extrabold ${
+                              isExcluded
+                                ? 'bg-black/10 text-black/50'
+                                : alcanzado 
+                                  ? 'bg-tienta-gold text-white shadow-sm border border-tienta-gold' 
+                                  : 'bg-tienta-crema text-tienta-goldDark border border-tienta-gold/20'
+                            }`}>
+                              {premio.puntos_requeridos} pts
+                            </span>
+                            {premio.stock !== -1 && (
+                              <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${
+                                premio.stock <= 0 
+                                  ? 'bg-red-50 text-red-600 border border-red-100' 
+                                  : 'bg-green-50 text-green-700 border border-green-100'
+                              }`}>
+                                {premio.stock <= 0 ? 'Sin Stock' : `Stock: ${premio.stock}`}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <p className="text-xs text-black/80 font-lato leading-relaxed mb-4 font-semibold">
                           {premio.descripcion || 'Sin descripción disponible.'}
@@ -606,6 +627,10 @@ export default function Dashboard() {
                         {isExcluded ? (
                           <div className="text-[10px] text-tienta-teal font-montserrat font-extrabold uppercase tracking-wide leading-relaxed text-center py-1 bg-tienta-teal/5 rounded-xl border border-tienta-teal/10 px-2">
                             🔒 Exclusivo para socios Platinum. ¡Seguí acumulando compras para alcanzar este beneficio!
+                          </div>
+                        ) : sinStock ? (
+                          <div className="text-[10px] text-red-600 font-montserrat font-extrabold uppercase tracking-wide leading-relaxed text-center py-1.5 bg-red-50 rounded-xl border border-red-100 px-2.5">
+                            ⚠️ Premio temporalmente sin stock en sucursal.
                           </div>
                         ) : alcanzado ? (
                           <div className="flex items-center gap-1.5 text-tienta-goldDark font-extrabold uppercase tracking-wider text-xs font-montserrat">

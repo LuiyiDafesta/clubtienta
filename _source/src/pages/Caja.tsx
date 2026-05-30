@@ -30,6 +30,7 @@ interface Promocion {
   titulo: string
   descripcion: string
   descuento_porcentaje: number | null
+  bono_puntos_override: number | null
   dias_vigencia: string[]
   niveles_aplicables: string[] | null
   imagen_url: string
@@ -54,6 +55,12 @@ interface Transaccion {
     apellido: string
     email: string
   } | null
+}
+
+const getDiaDeLaSemana = () => {
+  const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
+  const hoy = new Date()
+  return dias[hoy.getDay()]
 }
 
 export default function Caja() {
@@ -385,11 +392,14 @@ export default function Caja() {
       // Calcular puntos base sobre el monto neto a cobrar
       let puntosCalculados = Math.floor(neto / valorPunto)
 
-      // Aplicar multiplicador dinámico de puntos configurado por el administrador para Gold o Platinum
-      if (cliente.nivel === 'Platinum' && bonoPlatinum > 0) {
-        puntosCalculados = Math.floor(puntosCalculados * (1 + bonoPlatinum / 100))
-      } else if (cliente.nivel === 'Gold' && bonoGold > 0) {
-        puntosCalculados = Math.floor(puntosCalculados * (1 + bonoGold / 100))
+      // Aplicar multiplicador: Si la promoción tiene bono_puntos_override, lo priorizamos.
+      // Si no, usamos el bono por nivel por defecto.
+      const bonoAplicado = selectedPromo?.bono_puntos_override !== undefined && selectedPromo?.bono_puntos_override !== null
+        ? selectedPromo.bono_puntos_override
+        : (cliente.nivel === 'Platinum' && bonoPlatinum > 0 ? bonoPlatinum : (cliente.nivel === 'Gold' && bonoGold > 0 ? bonoGold : 0))
+
+      if (bonoAplicado > 0) {
+        puntosCalculados = Math.floor(puntosCalculados * (1 + bonoAplicado / 100))
       }
 
       if (puntosCalculados <= 0 && neto > 0) {
@@ -544,8 +554,12 @@ export default function Caja() {
     const desc = Number(descuentoManual) || 0
     const neto = Math.max(0, imp - desc)
     let pts = Math.floor(neto / valorPunto)
-    if (cliente?.nivel === 'Platinum' && bonoPlatinum > 0) pts = Math.floor(pts * (1 + bonoPlatinum / 100))
-    if (cliente?.nivel === 'Gold' && bonoGold > 0) pts = Math.floor(pts * (1 + bonoGold / 100))
+    
+    const bonoAplicado = selectedPromo?.bono_puntos_override !== undefined && selectedPromo?.bono_puntos_override !== null
+      ? selectedPromo.bono_puntos_override
+      : (cliente?.nivel === 'Platinum' && bonoPlatinum > 0 ? bonoPlatinum : (cliente?.nivel === 'Gold' && bonoGold > 0 ? bonoGold : 0))
+
+    if (bonoAplicado > 0) pts = Math.floor(pts * (1 + bonoAplicado / 100))
     return pts
   }
 
@@ -705,8 +719,16 @@ export default function Caja() {
                     <div className="space-y-1.5 mt-2">
                       <span className="text-xs text-tienta-goldDark font-extrabold mt-2 block tracking-wide bg-tienta-gold/5 border border-tienta-gold/25 p-2 rounded-xl">
                         ⚡ Sumará {previewPuntos()} puntos {
-                          ((cliente.nivel === 'Platinum' && bonoPlatinum > 0) || (cliente.nivel === 'Gold' && bonoGold > 0)) && 
-                          `(Con bono de nivel ${cliente.nivel}: +${cliente.nivel === 'Platinum' ? bonoPlatinum : bonoGold}%)`
+                          (() => {
+                            const bonoAplicado = selectedPromo?.bono_puntos_override !== undefined && selectedPromo?.bono_puntos_override !== null
+                              ? selectedPromo.bono_puntos_override
+                              : (cliente.nivel === 'Platinum' && bonoPlatinum > 0 ? bonoPlatinum : (cliente.nivel === 'Gold' && bonoGold > 0 ? bonoGold : 0))
+                            if (bonoAplicado > 0) {
+                              const esOverride = selectedPromo?.bono_puntos_override !== undefined && selectedPromo?.bono_puntos_override !== null
+                              return `(Con bono ${esOverride ? 'de promo' : `de nivel ${cliente.nivel}`}: +${bonoAplicado}%)`
+                            }
+                            return ''
+                          })()
                         }
                       </span>
                       {selectedPromo && (
@@ -739,27 +761,39 @@ export default function Caja() {
                   </span>
                   
                   {promociones.filter(p => {
-                    if (!p.niveles_aplicables || p.niveles_aplicables.length === 0) return true;
-                    return p.niveles_aplicables.includes(cliente.nivel);
+                    if (p.niveles_aplicables && p.niveles_aplicables.length > 0) {
+                      if (!p.niveles_aplicables.includes(cliente.nivel)) return false
+                    }
+                    const hoyDia = getDiaDeLaSemana()
+                    if (p.dias_vigencia && p.dias_vigencia.length > 0) {
+                      if (!p.dias_vigencia.includes(hoyDia)) return false
+                    }
+                    return true
                   }).length === 0 ? (
                     <p className="text-xs text-black/40 font-medium">No hay promociones aplicables para este nivel de socio hoy.</p>
                   ) : (
                     <div className="flex flex-wrap gap-2.5">
                       {promociones.filter(p => {
-                        if (!p.niveles_aplicables || p.niveles_aplicables.length === 0) return true;
-                        return p.niveles_aplicables.includes(cliente.nivel);
+                        if (p.niveles_aplicables && p.niveles_aplicables.length > 0) {
+                          if (!p.niveles_aplicables.includes(cliente.nivel)) return false
+                        }
+                        const hoyDia = getDiaDeLaSemana()
+                        if (p.dias_vigencia && p.dias_vigencia.length > 0) {
+                          if (!p.dias_vigencia.includes(hoyDia)) return false
+                        }
+                        return true
                       }).map((p) => {
-                        const isSelected = selectedPromo?.id === p.id;
+                        const isSelected = selectedPromo?.id === p.id
                         return (
                           <button
                             key={p.id}
                             type="button"
                             onClick={() => {
                               if (isSelected) {
-                                setSelectedPromo(null);
-                                setDescuentoManual('');
+                                setSelectedPromo(null)
+                                setDescuentoManual('')
                               } else {
-                                setSelectedPromo(p);
+                                setSelectedPromo(p)
                               }
                             }}
                             className={`px-4 py-2.5 rounded-2xl text-xs font-bold font-montserrat tracking-wider uppercase transition-all duration-200 cursor-pointer border text-left flex flex-col gap-1 max-w-[280px] sm:max-w-xs ${
@@ -772,13 +806,20 @@ export default function Caja() {
                             <span className={`text-[10px] lowercase block line-clamp-1 font-lato ${isSelected ? 'text-white/85' : 'text-black/45'}`}>
                               {p.descripcion}
                             </span>
-                            {p.descuento_porcentaje && (
-                              <span className={`text-[10px] uppercase font-mono tracking-widest font-extrabold ${isSelected ? 'text-white/95' : 'text-tienta-goldDark'}`}>
-                                % {p.descuento_porcentaje} OFF
-                              </span>
-                            )}
+                            <div className="flex flex-wrap gap-1.5 mt-1">
+                              {p.descuento_porcentaje && (
+                                <span className={`text-[9px] uppercase font-mono tracking-wider font-extrabold px-1.5 py-0.5 rounded ${isSelected ? 'bg-white/20 text-white' : 'bg-red-50 text-red-600 border border-red-100'}`}>
+                                  % {p.descuento_porcentaje} OFF
+                                </span>
+                              )}
+                              {p.bono_puntos_override && (
+                                <span className={`text-[9px] uppercase font-mono tracking-wider font-extrabold px-1.5 py-0.5 rounded ${isSelected ? 'bg-white/20 text-white' : 'bg-yellow-50 text-yellow-700 border border-yellow-100'}`}>
+                                  ⚡ +{p.bono_puntos_override}% Pts
+                                </span>
+                              )}
+                            </div>
                           </button>
-                        );
+                        )
                       })}
                     </div>
                   )}
@@ -793,7 +834,13 @@ export default function Caja() {
                         <p className="text-xs text-black/65 mt-0.5 font-medium">
                           {selectedPromo.descuento_porcentaje 
                             ? `Descuento sugerido del ${selectedPromo.descuento_porcentaje}% OFF.` 
-                            : 'Promo de beneficio físico/regalo. Podés registrar el costo opcional en el casillero derecho.'}
+                            : ''}
+                          {selectedPromo.bono_puntos_override 
+                            ? ` Acredita +${selectedPromo.bono_puntos_override}% de puntos extras (sobreescribe bono de nivel).` 
+                            : ''}
+                          {!selectedPromo.descuento_porcentaje && !selectedPromo.bono_puntos_override 
+                            ? 'Promo de beneficio físico/regalo. Podés registrar el costo opcional en el casillero derecho.' 
+                            : ''}
                         </p>
                       </div>
                       <div className="flex items-center gap-3 shrink-0">

@@ -32,6 +32,7 @@ interface Promocion {
   titulo: string
   descripcion: string
   descuento_porcentaje: number | null
+  bono_puntos_override: number | null
   dias_vigencia: string[]
   niveles_aplicables: string[] | null
   imagen_url: string
@@ -44,6 +45,12 @@ interface Transaccion {
   ticket_factura: string | null
   detalle: string
   created_at: string
+}
+
+const getDiaDeLaSemana = () => {
+  const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
+  const hoy = new Date()
+  return dias[hoy.getDay()]
 }
 
 export default function Dashboard() {
@@ -484,7 +491,12 @@ export default function Dashboard() {
                 {promos.map((pr) => {
                   // Validar si aplica al nivel
                   const aplicaNivel = !pr.niveles_aplicables || pr.niveles_aplicables.length === 0 || pr.niveles_aplicables.includes(cliente.nivel)
-                  if (!aplicaNivel) return null
+                  
+                  // Validar si es el día correcto de vigencia hoy
+                  const hoyDia = getDiaDeLaSemana()
+                  const aplicaDia = !pr.dias_vigencia || pr.dias_vigencia.length === 0 || pr.dias_vigencia.includes(hoyDia)
+
+                  if (!aplicaNivel || !aplicaDia) return null
                   
                   return (
                     <div key={pr.id} className="border border-tienta-gold/20 bg-tienta-crema/25 rounded-2xl p-4 flex flex-col justify-between overflow-hidden shadow-[0_2px_10px_rgba(0,0,0,0.01)]">
@@ -494,15 +506,22 @@ export default function Dashboard() {
                             <img src={pr.imagen_url} alt={pr.titulo} className="w-full h-full object-cover" />
                           </div>
                         )}
-                        <div className="flex justify-between items-start gap-3 mb-2">
+                        <div className="flex justify-between items-start gap-3 mb-2 flex-wrap">
                           <h4 className="font-montserrat font-bold text-sm uppercase tracking-wide text-tienta-teal">
                             {pr.titulo}
                           </h4>
-                          {pr.descuento_porcentaje && (
-                            <span className="bg-red-50 text-red-600 px-2.5 py-0.5 rounded text-[10px] font-bold border border-red-100 font-montserrat whitespace-nowrap shrink-0">
-                              🏷 {pr.descuento_porcentaje}% OFF
-                            </span>
-                          )}
+                          <div className="flex gap-1.5 flex-wrap">
+                            {pr.descuento_porcentaje && (
+                              <span className="bg-red-50 text-red-600 px-2.5 py-0.5 rounded text-[10px] font-bold border border-red-100 font-montserrat whitespace-nowrap shrink-0">
+                                🏷 {pr.descuento_porcentaje}% OFF
+                              </span>
+                            )}
+                            {pr.bono_puntos_override && (
+                              <span className="bg-yellow-50 text-yellow-700 px-2.5 py-0.5 rounded text-[10px] font-bold border border-yellow-100 font-montserrat whitespace-nowrap shrink-0">
+                                ⚡ +{pr.bono_puntos_override}% Puntos
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <p className="text-xs text-black/75 font-lato leading-relaxed font-semibold">
                           {pr.descripcion}

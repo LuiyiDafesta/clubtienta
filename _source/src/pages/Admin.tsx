@@ -23,6 +23,7 @@ interface Promocion {
   titulo: string
   descripcion: string
   descuento_porcentaje: number | null
+  bono_puntos_override?: number | null
   dias_vigencia: string[]
   niveles_aplicables: string[] | null
   imagen_url: string
@@ -202,7 +203,7 @@ export default function Admin() {
   const [promociones, setPromociones] = useState<Promocion[]>([])
   const [loadingPromos, setLoadingPromos] = useState(false)
   const [nuevaPromo, setNuevaPromo] = useState<Promocion>({
-    titulo: '', descripcion: '', descuento_porcentaje: null, dias_vigencia: [], niveles_aplicables: [], imagen_url: '', activo: true
+    titulo: '', descripcion: '', descuento_porcentaje: null, bono_puntos_override: null, dias_vigencia: [], niveles_aplicables: [], imagen_url: '', activo: true
   })
   const [editingPromoId, setEditingPromoId] = useState<string | null>(null)
 
@@ -640,7 +641,7 @@ export default function Admin() {
         if (error) throw error
       }
 
-      setNuevaPromo({ titulo: '', descripcion: '', descuento_porcentaje: null, dias_vigencia: [], niveles_aplicables: [], imagen_url: '', activo: true })
+      setNuevaPromo({ titulo: '', descripcion: '', descuento_porcentaje: null, bono_puntos_override: null, dias_vigencia: [], niveles_aplicables: [], imagen_url: '', activo: true })
       fetchPromociones()
     } catch (err: any) {
       alert(err.message)
@@ -653,6 +654,7 @@ export default function Admin() {
       titulo: promo.titulo,
       descripcion: promo.descripcion,
       descuento_porcentaje: promo.descuento_porcentaje,
+      bono_puntos_override: promo.bono_puntos_override || null,
       dias_vigencia: promo.dias_vigencia || [],
       niveles_aplicables: promo.niveles_aplicables || [],
       imagen_url: promo.imagen_url || '',
@@ -662,7 +664,7 @@ export default function Admin() {
 
   const handleCancelarEditarPromo = () => {
     setEditingPromoId(null)
-    setNuevaPromo({ titulo: '', descripcion: '', descuento_porcentaje: null, dias_vigencia: [], niveles_aplicables: [], imagen_url: '', activo: true })
+    setNuevaPromo({ titulo: '', descripcion: '', descuento_porcentaje: null, bono_puntos_override: null, dias_vigencia: [], niveles_aplicables: [], imagen_url: '', activo: true })
   }
 
   const handleUploadPromoImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1478,17 +1480,32 @@ export default function Admin() {
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
-                  % Descuento Directo (Opcional)
-                </label>
-                <input
-                  type="number"
-                  placeholder="Ej. 20 (opcional)"
-                  value={nuevaPromo.descuento_porcentaje || ''}
-                  onChange={(e) => setNuevaPromo({ ...nuevaPromo, descuento_porcentaje: e.target.value ? Number(e.target.value) : null })}
-                  className="input-tienta py-2.5 text-black font-semibold text-sm"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
+                    % Descuento Directo (Opcional)
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="Ej. 20 (opcional)"
+                    value={nuevaPromo.descuento_porcentaje || ''}
+                    onChange={(e) => setNuevaPromo({ ...nuevaPromo, descuento_porcentaje: e.target.value ? Number(e.target.value) : null })}
+                    className="input-tienta py-2.5 text-black font-semibold text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-montserrat uppercase tracking-wider font-bold text-black/75 mb-1.5">
+                    % Puntos Extra (Opcional)
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="Ej. 30 (opcional)"
+                    value={nuevaPromo.bono_puntos_override || ''}
+                    onChange={(e) => setNuevaPromo({ ...nuevaPromo, bono_puntos_override: e.target.value ? Number(e.target.value) : null })}
+                    className="input-tienta py-2.5 text-black font-semibold text-sm"
+                  />
+                </div>
               </div>
 
               {/* Días de Vigencia */}
@@ -1637,6 +1654,11 @@ export default function Admin() {
                           {pr.descuento_porcentaje && (
                             <span className="bg-red-50 text-red-600 px-2.5 py-0.5 rounded text-[10px] font-bold border border-red-100 whitespace-nowrap shrink-0">
                               🏷 {pr.descuento_porcentaje}% OFF
+                            </span>
+                          )}
+                          {pr.bono_puntos_override && (
+                            <span className="bg-yellow-50 text-yellow-700 px-2.5 py-0.5 rounded text-[10px] font-bold border border-yellow-100 whitespace-nowrap shrink-0">
+                              ⚡ +{pr.bono_puntos_override}% Puntos Extra
                             </span>
                           )}
                           <span className="bg-tienta-crema text-tienta-goldDark px-2.5 py-0.5 rounded text-[10px] font-bold border border-tienta-gold/20">

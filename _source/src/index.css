@@ -52,7 +52,7 @@
 }
 
 html {
-  font-size: 20px; /* Incrementado a 20px en móviles para máxima accesibilidad y lectura para personas mayores */
+  font-size: 16px; /* Ajustado a 16px para proporciones de App Nativa Premium */
 }
 
 @media (min-width: 768px) {

@@ -249,7 +249,8 @@ export default function Movimientos() {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
+            {/* Vista Desktop (Tabla Tradicional) */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-tienta-crema/20 border-b border-black/5 text-[11px] font-montserrat uppercase tracking-wider text-black/65 font-extrabold">
@@ -308,6 +309,84 @@ export default function Movimientos() {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            {/* Vista Mobile (Timeline/Feed de Actividad Premium) */}
+            <div className="block md:hidden divide-y divide-black/5">
+              {paginatedHistorial.map((tx) => {
+                const esCarga = tx.puntos > 0
+                return (
+                  <div key={tx.id} className="p-5 flex items-start gap-4 hover:bg-tienta-crema/5 transition-colors duration-150">
+                    
+                    {/* Icono identificador a la izquierda */}
+                    <div className={`p-2.5 rounded-full shrink-0 flex items-center justify-center border ${
+                      esCarga 
+                        ? 'bg-green-50 text-green-600 border-green-100' 
+                        : 'bg-red-50 text-red-500 border-red-100'
+                    }`}>
+                      {tx.tipo === 'carga_compra' ? (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                        </svg>
+                      ) : tx.tipo === 'carga_manual' ? (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.907c.961 0 1.371 1.24.588 1.81l-3.97 2.883a1 1 0 00-.364 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.971-2.883a1 1 0 00-1.17 0l-3.971 2.883c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.364-1.118L2.49 10.1c-.783-.57-.38-1.81.588-1.81h4.907a1 1 0 00.95-.69l1.519-4.674z"></path>
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                        </svg>
+                      )}
+                    </div>
+
+                    {/* Contenido en el centro */}
+                    <div className="flex-1 min-w-0 text-left">
+                      <span className="text-sm font-extrabold text-black block leading-snug">
+                        {tx.detalle}
+                      </span>
+                      
+                      {/* Fecha y Hora formateada */}
+                      <span className="text-[11px] text-black/60 font-semibold font-mono block mt-1">
+                        {new Date(tx.created_at).toLocaleString('es-AR', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </span>
+
+                      {/* Badges de soporte (Ticket, Promoción) */}
+                      <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                        <span className="bg-black/5 text-black/55 text-[9px] font-bold font-montserrat uppercase px-2 py-0.5 rounded tracking-wider">
+                          {tx.tipo === 'carga_compra' ? '🛒 Compra' : tx.tipo === 'carga_manual' ? '⭐ Bono/Carga' : '🎁 Canje'}
+                          {tx.ticket_factura ? ` • #${tx.ticket_factura}` : ''}
+                        </span>
+                        {tx.promocion?.titulo && (
+                          <span className="bg-tienta-gold/10 text-tienta-goldDark border border-tienta-gold/20 text-[9px] font-montserrat font-extrabold uppercase px-2 py-0.5 rounded tracking-wider">
+                            🏷️ Promo: {tx.promocion.titulo} {tx.descuento_aplicado && tx.descuento_aplicado > 0 ? `(-$${Number(tx.descuento_aplicado).toLocaleString('es-AR')})` : ''}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Puntos e Importe en el extremo derecho */}
+                    <div className="text-right shrink-0 flex flex-col items-end justify-start gap-1">
+                      <span className={`text-base font-extrabold font-montserrat ${
+                        esCarga ? 'text-green-600' : 'text-red-500'
+                      }`}>
+                        {esCarga ? `+${tx.puntos}` : tx.puntos}
+                      </span>
+                      {tx.importe && (
+                        <span className="text-[11px] font-extrabold text-black/65">
+                          ${Number(tx.importe).toLocaleString('es-AR')}
+                        </span>
+                      )}
+                    </div>
+
+                  </div>
+                )
+              })}
             </div>
             {totalItems > itemsPerPage && (
               <div className="flex items-center justify-between border-t border-black/5 p-5 sm:px-8">

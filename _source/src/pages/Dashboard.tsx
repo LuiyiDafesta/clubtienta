@@ -88,7 +88,9 @@ export default function Dashboard() {
     if (cliente) {
       setEditNombre(cliente.nombre || '')
       setEditApellido(cliente.apellido || '')
-      setEditTelefono(cliente.telefono || '')
+      // Sanitizar prefijo 549 para mostrar solo 10 dígitos limpios al usuario
+      const displayPhone = (cliente.telefono || '').replace(/^549/, '')
+      setEditTelefono(displayPhone)
       setEditFechaNacimiento(cliente.fecha_nacimiento || '')
     }
   }, [cliente, editingProfile])
@@ -665,8 +667,10 @@ export default function Dashboard() {
       {/* Modal de Edición de Perfil de Socio */}
       {editingProfile && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in text-left">
-          <div className="bg-white border border-black/10 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl animate-scale-up max-h-[92vh] overflow-y-auto">
-            <div className="flex justify-between items-start mb-5">
+          <div className="bg-white border border-black/10 rounded-3xl max-w-lg w-full shadow-2xl animate-scale-up max-h-[90vh] flex flex-col overflow-hidden">
+            
+            {/* Cabecera Fija */}
+            <div className="flex justify-between items-center px-6 py-5 border-b border-black/5 bg-white shrink-0">
               <div>
                 <span className="text-[10px] font-montserrat uppercase tracking-[0.2em] text-tienta-goldDark font-extrabold">
                   Mi Perfil ClubTienta
@@ -676,116 +680,121 @@ export default function Dashboard() {
                 </h3>
               </div>
               <button
+                type="button"
                 onClick={() => setEditingProfile(false)}
-                className="text-black/40 hover:text-black font-bold text-xl cursor-pointer p-1 -mt-1"
+                className="text-black/40 hover:text-black font-bold text-lg cursor-pointer p-1.5 rounded-full hover:bg-black/5 transition-all"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleGuardarEdicion} className="space-y-3 sm:space-y-4">
-              
-              {/* Bloque Fijo: DNI y Email */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 bg-tienta-crema/40 border border-black/5 p-4 rounded-2xl">
-                <div>
-                  <span className="block text-[9px] font-montserrat uppercase tracking-wider font-extrabold text-black/45 mb-1">
-                    Mi DNI (Fijo)
-                  </span>
-                  <span className="text-sm font-bold text-black/70 font-mono tracking-wide">
-                    {cliente.dni}
-                  </span>
+            <form onSubmit={handleGuardarEdicion} className="flex flex-col flex-1 overflow-hidden">
+              {/* Cuerpo Scrollable */}
+              <div className="p-6 overflow-y-auto flex-1 space-y-4">
+                
+                {/* Bloque Fijo: DNI y Email */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 bg-tienta-crema/40 border border-black/5 p-4 rounded-2xl">
+                  <div>
+                    <span className="block text-[9px] font-montserrat uppercase tracking-wider font-extrabold text-black/45 mb-1">
+                      Mi DNI (Fijo)
+                    </span>
+                    <span className="text-sm font-bold text-black/70 font-mono tracking-wide">
+                      {cliente.dni}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="block text-[9px] font-montserrat uppercase tracking-wider font-extrabold text-black/45 mb-1">
+                      Mi Email (Fijo)
+                    </span>
+                    <span className="text-sm font-bold text-black/70 font-mono truncate block max-w-full">
+                      {cliente.email}
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <span className="block text-[9px] font-montserrat uppercase tracking-wider font-extrabold text-black/45 mb-1">
-                    Mi Email (Fijo)
-                  </span>
-                  <span className="text-sm font-bold text-black/70 font-mono truncate block max-w-full">
-                    {cliente.email}
-                  </span>
-                </div>
-              </div>
 
-              {/* Grid de Nombre y Apellido */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                {/* Grid de Nombre y Apellido */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div>
+                    <label className="block text-xs font-montserrat uppercase tracking-wider font-extrabold text-tienta-teal mb-2">
+                      Nombre
+                    </label>
+                    <div className="relative">
+                      <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-black/50">
+                        <User size={14} />
+                      </span>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Ej. Juan"
+                        value={editNombre}
+                        onChange={(e) => setEditNombre(e.target.value)}
+                        className="input-tienta pl-11 py-2.5 text-black font-semibold text-sm bg-white"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-montserrat uppercase tracking-wider font-extrabold text-tienta-teal mb-2">
+                      Apellido
+                    </label>
+                    <div className="relative">
+                      <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-black/50">
+                        <User size={14} />
+                      </span>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Ej. Pérez"
+                        value={editApellido}
+                        onChange={(e) => setEditApellido(e.target.value)}
+                        className="input-tienta pl-11 py-2.5 text-black font-semibold text-sm bg-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Teléfono (WhatsApp) */}
                 <div>
                   <label className="block text-xs font-montserrat uppercase tracking-wider font-extrabold text-tienta-teal mb-2">
-                    Nombre
+                    WhatsApp (10 dígitos sin 0 ni 15)
                   </label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-black/50">
-                      <User size={14} />
+                      <MessageSquare size={14} />
                     </span>
                     <input
-                      type="text"
+                      type="tel"
                       required
-                      placeholder="Ej. Juan"
-                      value={editNombre}
-                      onChange={(e) => setEditNombre(e.target.value)}
+                      placeholder="Ej. 3416123456"
+                      value={editTelefono}
+                      onChange={(e) => setEditTelefono(e.target.value)}
                       className="input-tienta pl-11 py-2.5 text-black font-semibold text-sm bg-white"
                     />
                   </div>
                 </div>
+
+                {/* Fecha de Nacimiento */}
                 <div>
                   <label className="block text-xs font-montserrat uppercase tracking-wider font-extrabold text-tienta-teal mb-2">
-                    Apellido
+                    Fecha de Nacimiento
                   </label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-black/50">
-                      <User size={14} />
+                      <Calendar size={14} />
                     </span>
                     <input
-                      type="text"
+                      type="date"
                       required
-                      placeholder="Ej. Pérez"
-                      value={editApellido}
-                      onChange={(e) => setEditApellido(e.target.value)}
+                      value={editFechaNacimiento}
+                      onChange={(e) => setEditFechaNacimiento(e.target.value)}
                       className="input-tienta pl-11 py-2.5 text-black font-semibold text-sm bg-white"
                     />
                   </div>
                 </div>
+
               </div>
 
-              {/* Teléfono (WhatsApp) */}
-              <div>
-                <label className="block text-xs font-montserrat uppercase tracking-wider font-extrabold text-tienta-teal mb-2">
-                  WhatsApp (10 dígitos sin 0 ni 15)
-                </label>
-                <div className="relative">
-                  <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-black/50">
-                    <MessageSquare size={14} />
-                  </span>
-                  <input
-                    type="tel"
-                    required
-                    placeholder="Ej. 3416123456"
-                    value={editTelefono}
-                    onChange={(e) => setEditTelefono(e.target.value)}
-                    className="input-tienta pl-11 py-2.5 text-black font-semibold text-sm bg-white"
-                  />
-                </div>
-              </div>
-
-              {/* Fecha de Nacimiento */}
-              <div>
-                <label className="block text-xs font-montserrat uppercase tracking-wider font-extrabold text-tienta-teal mb-2">
-                  Fecha de Nacimiento
-                </label>
-                <div className="relative">
-                  <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-black/50">
-                    <Calendar size={14} />
-                  </span>
-                  <input
-                    type="date"
-                    required
-                    value={editFechaNacimiento}
-                    onChange={(e) => setEditFechaNacimiento(e.target.value)}
-                    className="input-tienta pl-11 py-2.5 text-black font-semibold text-sm bg-white"
-                  />
-                </div>
-              </div>
-
-              {/* Botones de acción */}
-              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-black/5">
+              {/* Pie de Acción Fijo */}
+              <div className="px-6 py-4 border-t border-black/5 flex justify-end gap-3 bg-tienta-crema/10 shrink-0">
                 <button
                   type="button"
                   onClick={() => setEditingProfile(false)}

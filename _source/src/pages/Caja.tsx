@@ -364,7 +364,7 @@ export default function Caja() {
   }
 
   const recargarCliente = async () => {
-    if (!cliente) return
+    if (!cliente) return null
     const { data } = await supabase
       .from('profiles')
       .select('*')
@@ -373,7 +373,9 @@ export default function Caja() {
     if (data) {
       setCliente(data)
       fetchHistorialCliente(data.id)
+      return data
     }
+    return null
   }
 
   // Operación: Cargar Compra ($)
@@ -454,7 +456,7 @@ export default function Caja() {
       setDescuentoManual('')
       
       // Recargar datos actualizados del cliente
-      await recargarCliente()
+      const clienteActualizado = await recargarCliente()
       await fetchCajeroTurno()
 
       // Enviar correo transaccional de compra
@@ -464,7 +466,7 @@ export default function Caja() {
         descuento_aplicado: desc || null,
         puntos: puntosCalculados,
         promo_titulo: promoTituloVal
-      }, cliente)
+      }, clienteActualizado || cliente)
 
       setTimeout(() => setSuccessCompra(false), 3000)
 
@@ -514,14 +516,15 @@ export default function Caja() {
       setPuntosManuales('')
       setDetalleManual('')
       
-      await recargarCliente()
+      // Recargar datos actualizados del cliente
+      const clienteActualizado = await recargarCliente()
       await fetchCajeroTurno()
 
       // Enviar correo transaccional de ajuste manual
       enviarEmailTransaccional('ajuste_manual', cliente.id, {
         puntos: puntosAjustados,
         detalle: detalleAjuste
-      }, cliente)
+      }, clienteActualizado || cliente)
 
       setTimeout(() => setSuccessManual(false), 3000)
 
@@ -565,7 +568,7 @@ export default function Caja() {
           if (error) throw error
 
           mostrarToast(`¡Premio canjeado con éxito! Entregá: ${premio.nombre}`, 'success')
-          await recargarCliente()
+          const clienteActualizado = await recargarCliente()
           await fetchPremios() // Recargar stock en frontend
           await fetchCajeroTurno()
 
@@ -573,7 +576,7 @@ export default function Caja() {
           enviarEmailTransaccional('canje_premio', cliente.id, {
             premio_nombre: premio.nombre,
             puntos: -premio.puntos_requeridos
-          }, cliente)
+          }, clienteActualizado || cliente)
 
         } catch (err: any) {
           console.error(err)

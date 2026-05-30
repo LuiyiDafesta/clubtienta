@@ -182,6 +182,16 @@ export default function Registro() {
         // Enviar email transaccional de bienvenida
         enviarEmailTransaccional('registro_usuario', authData.user.id, {
           puntos_bienvenida: welcomePts
+        }, {
+          id: authData.user.id,
+          nombre,
+          apellido,
+          email,
+          dni: cleanDni,
+          telefono: cleanWhatsapp,
+          puntos_actuales: welcomePts, // Acreditación bienvenida
+          nivel: 'Gold',
+          activo: true
         })
 
         // 5. DISPARAR WEBHOOK SI ESTÁ CONFIGURADO

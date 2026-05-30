@@ -464,7 +464,7 @@ export default function Caja() {
         descuento_aplicado: desc || null,
         puntos: puntosCalculados,
         promo_titulo: promoTituloVal
-      })
+      }, cliente)
 
       setTimeout(() => setSuccessCompra(false), 3000)
 
@@ -521,7 +521,7 @@ export default function Caja() {
       enviarEmailTransaccional('ajuste_manual', cliente.id, {
         puntos: puntosAjustados,
         detalle: detalleAjuste
-      })
+      }, cliente)
 
       setTimeout(() => setSuccessManual(false), 3000)
 
@@ -573,7 +573,7 @@ export default function Caja() {
           enviarEmailTransaccional('canje_premio', cliente.id, {
             premio_nombre: premio.nombre,
             puntos: -premio.puntos_requeridos
-          })
+          }, cliente)
 
         } catch (err: any) {
           console.error(err)

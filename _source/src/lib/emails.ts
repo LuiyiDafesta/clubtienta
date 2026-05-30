@@ -341,9 +341,21 @@ function generarTemplateHtml(
 export async function enviarEmailTransaccional(
   evento: 'registro_usuario' | 'cambio_contrasena' | 'suma_puntos' | 'canje_premio' | 'ajuste_manual',
   clienteId: string,
-  detalles: any
+  detalles: any,
+  clientePreloaded?: {
+    id: string
+    nombre: string
+    apellido: string
+    email: string
+    dni: string
+    telefono: string
+    puntos_actuales: number
+    nivel: string
+    activo?: boolean
+  }
 ) {
   try {
+    console.log('[emails.ts] Iniciando enviarEmailTransaccional. Evento:', evento, 'ClienteID:', clienteId)
     // 1. Obtener la URL del webhook de emails transaccionales
     const { data: webhookConfig, error: configError } = await supabase
       .from('configuraciones')
@@ -351,20 +363,44 @@ export async function enviarEmailTransaccional(
       .eq('clave', 'webhook_emails')
       .maybeSingle()
 
-    if (configError || !webhookConfig || !webhookConfig.valor) {
-      console.log('Webhook de emails transaccionales no configurado o inactivo.')
+    if (configError) {
+      console.error('[emails.ts] Error al leer webhook_emails de configuraciones:', configError)
       return
     }
 
-    // 2. Obtener datos detallados del cliente
-    const { data: cliente, error: clientError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', clienteId)
-      .maybeSingle()
+    if (!webhookConfig || !webhookConfig.valor) {
+      console.warn('[emails.ts] Webhook de emails transaccionales no configurado en la DB o vacío.')
+      return
+    }
 
-    if (clientError || !cliente) {
-      console.error('Error al obtener datos del cliente para email:', clientError)
+    console.log('[emails.ts] URL de webhook obtenido:', webhookConfig.valor)
+
+    let cliente = clientePreloaded
+
+    // 2. Obtener datos detallados del cliente si no vienen pre-cargados
+    if (!cliente) {
+      console.log('[emails.ts] Cliente no precargado. Buscando en DB para ID:', clienteId)
+      const { data: dbCliente, error: clientError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', clienteId)
+        .maybeSingle()
+
+      if (clientError) {
+        console.error('[emails.ts] Error al obtener datos del cliente de la DB:', clientError)
+        return
+      }
+      if (!dbCliente) {
+        console.error('[emails.ts] No se encontró el cliente en profiles de la DB.')
+        return
+      }
+      cliente = dbCliente
+    } else {
+      console.log('[emails.ts] Utilizando datos de cliente precargados:', cliente)
+    }
+
+    if (!cliente) {
+      console.error('[emails.ts] Error: cliente no definido.')
       return
     }
 
@@ -625,6 +661,7 @@ export async function enviarEmailTransaccional(
         break
     }
 
+    console.log('[emails.ts] Generando payload para evento:', evento)
     // 3. Lanzar la petición HTTP POST al Webhook con los datos estructurados
     const payload = {
       tipo_evento: evento,
@@ -645,6 +682,8 @@ export async function enviarEmailTransaccional(
       timestamp: new Date().toISOString()
     }
 
+    console.log('[emails.ts] Enviando POST al webhook:', webhookConfig.valor)
+    
     // Usar fetch asincrónico directo
     fetch(webhookConfig.valor, {
       method: 'POST',
@@ -654,15 +693,16 @@ export async function enviarEmailTransaccional(
       body: JSON.stringify(payload)
     })
       .then((res) => {
+        console.log('[emails.ts] Webhook respondió con código:', res.status)
         if (!res.ok) {
-          console.error('Error del webhook de emails transaccionales status:', res.status)
+          console.error('[emails.ts] Error del webhook de emails transaccionales status:', res.status)
         }
       })
       .catch((err) => {
-        console.error('Error al enviar email transaccional al webhook:', err)
+        console.error('[emails.ts] Error al enviar email transaccional al webhook (CORS o de red):', err)
       })
 
   } catch (err) {
-    console.error('Error general en enviarEmailTransaccional:', err)
+    console.error('[emails.ts] Error general en enviarEmailTransaccional:', err)
   }
 }
